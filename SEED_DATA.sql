@@ -27,7 +27,13 @@ INSERT INTO projects (name, description, type, stage, status, priority, goal, te
 
 ('mypoly', 'Polymarket trading client wrapper', 'cli-tool', 'setup', 'paused', 'low', 'Programmatic trading on Polymarket', '["Python","py-clob-client"]', 'C:\Projects\mypoly', 1, NULL, 'Superseded by letsmakebillions', 'Archive — functionality absorbed by letsmakebillions', 15, '2026-03-01'),
 
-('ExplainIt', 'Automated explainer video and documentation generator from any website', 'saas', 'setup', 'building', 'medium', 'Transform any website into explainer videos + PDF docs automatically', '["Next.js 14","TypeScript","Playwright","Remotion","PDFKit","Sharp"]', 'C:\Projects\ExplainIt', 1, NULL, 'In-memory pipeline storage, just started (1 commit)', 'Define MVP scope, add persistent storage, build core pipeline', 50, '2026-03-05');
+('ExplainIt', 'Automated explainer video and documentation generator from any website — URL to video/PDF pipeline with Smart Mode', 'saas', 'development', 'building', 'medium', 'Transform any website into explainer videos + PDF docs automatically', '["Next.js 14","TypeScript","Playwright","PDFKit","Vitest","Tailwind"]', 'C:\Projects\ExplainIt', 1, NULL, NULL, 'Deploy to Railway/Render (needs server-side Chromium), add user auth', 75, '2026-03-06'),
+
+('TokenWise', 'AI cost tracker and predictor for Claude Code — hooks into Claude CLI to log every interaction', 'cli-tool', 'development', 'building', 'medium', 'Track Claude Code costs per session/project with token estimation', '["TypeScript","Node.js","sql.js (WASM)","Claude Code Hooks"]', 'C:\Projects\TokenWise', 1, NULL, NULL, 'Phase 2: pattern recognition after 100+ logged interactions', 70, '2026-03-06'),
+
+('1-2Clicks', 'Secure credential collector — send a link, client submits API keys encrypted, developer retrieves them', 'web-app', 'development', 'building', 'high', 'Let freelance devs collect client API keys securely via 1-2 click mobile links', '["Next.js 16","TypeScript","Prisma 7","SQLite","AES-256-GCM","JWT","Tailwind","Zod"]', 'C:\Projects\KeyDrop', 1, NULL, NULL, 'Add OAuth provider flows (Facebook, Google), AI-powered guide generation, deploy to Vercel', 80, '2026-03-06'),
+
+('PostPilot', 'AI social media copilot — agency sends client a link, client uploads content, AI generates captions in their voice, publishes to all platforms', 'saas', 'development', 'building', 'high', 'Zero-friction social media posting with AI Style DNA learning', '["Next.js 16","TypeScript","Prisma 6","SQLite","Claude Haiku API","AES-256-GCM","JWT","Tailwind","Zod"]', 'C:\Projects\PostPilot', 1, 'Per-brand SaaS subscription for agencies', 'OAuth connect flow for Instagram/Facebook/TikTok not yet built', 'Implement real OAuth connect flow for at least Instagram, then deploy', 85, '2026-03-06');
 
 -- ============================================
 -- LAUNCH COMMANDS
@@ -62,7 +68,19 @@ INSERT INTO project_commands (project_id, label, command, command_type, shell, a
 ((SELECT id FROM projects WHERE name='preprompt-web'), 'Dev Server', 'npm run dev', 'terminal', 'powershell', 0, 1, '["3010"]'),
 ((SELECT id FROM projects WHERE name='preprompt-web'), 'Open Browser', 'start http://localhost:3010', 'browser', 'powershell', 0, 2, NULL),
 
-((SELECT id FROM projects WHERE name='ExplainIt'), 'Dev Server', 'npm run dev', 'terminal', 'powershell', 0, 1, '["3000"]');
+((SELECT id FROM projects WHERE name='ExplainIt'), 'Dev Server', 'npm run dev', 'terminal', 'powershell', 0, 1, '["3000"]'),
+
+((SELECT id FROM projects WHERE name='TokenWise'), 'Open in VS Code', 'code C:\Projects\TokenWise', 'vscode', 'powershell', 0, 1, NULL),
+((SELECT id FROM projects WHERE name='TokenWise'), 'View Stats', 'npx ts-node src/cli.ts stats', 'terminal', 'powershell', 0, 2, NULL),
+
+((SELECT id FROM projects WHERE name='1-2Clicks'), 'Dev Server', 'npm run dev', 'terminal', 'powershell', 0, 1, '["3000"]'),
+((SELECT id FROM projects WHERE name='1-2Clicks'), 'Open Browser', 'start http://localhost:3000', 'browser', 'powershell', 0, 2, NULL),
+((SELECT id FROM projects WHERE name='1-2Clicks'), 'Open in VS Code', 'code C:\Projects\KeyDrop', 'vscode', 'powershell', 0, 3, NULL),
+
+((SELECT id FROM projects WHERE name='PostPilot'), 'Dev Server', 'npm run dev', 'terminal', 'powershell', 0, 1, '["3000"]'),
+((SELECT id FROM projects WHERE name='PostPilot'), 'Open Browser', 'start http://localhost:3000', 'browser', 'powershell', 0, 2, NULL),
+((SELECT id FROM projects WHERE name='PostPilot'), 'Prisma Studio', 'npx prisma studio', 'terminal', 'powershell', 0, 3, '["5555"]'),
+((SELECT id FROM projects WHERE name='PostPilot'), 'Open in VS Code', 'code C:\Projects\PostPilot', 'vscode', 'powershell', 0, 4, NULL);
 
 -- ============================================
 -- INITIAL LEARNINGS (from audit patterns)
@@ -75,7 +93,15 @@ INSERT INTO learnings (project_id, learning, category, impact_score) VALUES
 (NULL, 'Credentials are hardcoded across multiple projects. Always use .env files and add them to .gitignore from the start.', 'technical', 8),
 (NULL, 'Redundant projects waste energy. Consolidate overlapping tools (e.g., crypto bots, prompt tools) before building new ones.', 'process', 7),
 (NULL, 'Poker vertical is the strongest ecosystem — 5 interconnected projects with real revenue. Double down here.', 'business', 8),
-(NULL, 'Hebrew RTL + mobile-first is a consistent requirement. Use Tailwind RTL plugin and test on mobile from day 1.', 'technical', 6);
+(NULL, 'Hebrew RTL + mobile-first is a consistent requirement. Use Tailwind RTL plugin and test on mobile from day 1.', 'technical', 6),
+(NULL, 'JWT auth with refresh token rotation is now a proven pattern across 3 projects (1-2Clicks, PostPilot, and the pattern in Wingman). Extract to shared library.', 'technical', 9),
+(NULL, 'AES-256-GCM encryption with per-record IV is battle-tested in 1-2Clicks and PostPilot. Never roll custom crypto — reuse the crypto.ts pattern.', 'technical', 9),
+(NULL, 'Rate limiting is implemented differently in each project (rate-limiter-flexible, custom Map, custom Map+proxy). Standardize on one approach.', 'technical', 7),
+(NULL, 'CLAUDE.md files in every project dramatically accelerate future sessions. Always create one at project end.', 'process', 10),
+(NULL, 'Zod validation at API boundaries catches bad input early. Every project with Zod (1-2Clicks, PostPilot) has zero runtime validation bugs.', 'technical', 8),
+(NULL, 'Magic link pattern (token-based public access without auth) works great for client-facing flows. Used in 1-2Clicks (credential submission) and PostPilot (content upload). Consider for ExplainIt.', 'technical', 8),
+(NULL, 'AI integration with graceful fallback (PostPilot captions work without API key) is the right pattern. Never make AI a hard dependency for MVP.', 'technical', 8),
+(NULL, 'Audit logging is in 1-2Clicks and PostPilot but missing from ExplainIt. Add it everywhere — it costs nothing and saves debugging hours.', 'technical', 7);
 
 -- ============================================
 -- INITIAL CROSS-PROJECT PATTERNS
@@ -86,4 +112,22 @@ INSERT INTO cross_project_patterns (pattern, confidence, supporting_projects, re
 ('Burst development (1-3 day sprints) followed by momentum loss', 0.80, '["crypto-arb-bot","ExplainIt","MegaPromptGPT","chicle"]', 'Always end a sprint with a clear next action written down. Schedule the next work session.'),
 ('Crypto/trading projects overlap significantly', 0.90, '["letsmakebillions","cryptowhale","crypto-arb-bot","mypoly"]', 'Consolidate into 1-2 projects max. Merge scanners, kill redundant wrappers.'),
 ('No project has integrated real payment processing', 0.95, '["ftable","chicle","Wingman"]', 'Add Stripe to ftable first (lowest risk, existing revenue). Then Wingman (highest potential).'),
-('Projects deployed to ftable.co.il share FTP credentials across repos', 0.90, '["ftable","Heroes-Hadera","chicle","clubgg","preprompt-web"]', 'Centralize deployment config. Rotate FTP password. Consider CI/CD.');
+('Projects deployed to ftable.co.il share FTP credentials across repos', 0.90, '["ftable","Heroes-Hadera","chicle","clubgg","preprompt-web"]', 'Centralize deployment config. Rotate FTP password. Consider CI/CD.'),
+
+('Shared auth architecture: JWT + refresh rotation + bcrypt + authFetch + auth-context.tsx', 0.95, '["1-2Clicks","PostPilot"]', 'Extract as @roy/next-auth-kit package or shared lib folder. Wingman uses NestJS auth — could align patterns.'),
+
+('Shared encryption pattern: AES-256-GCM with per-record IV/authTag in crypto.ts', 0.95, '["1-2Clicks","PostPilot"]', 'Identical code in both projects. Extract as shared utility. Any project storing sensitive tokens should use this.'),
+
+('Shared validation pattern: Zod schemas at API boundaries with consistent error handling', 0.90, '["1-2Clicks","PostPilot"]', 'Add Zod to ExplainIt API routes. Standardize error response format: { error, details? }.'),
+
+('Magic link / token-based public access without auth', 0.90, '["1-2Clicks","PostPilot"]', 'Proven pattern for client-facing flows. ExplainIt could use this for sharing generated content with clients.'),
+
+('Bilingual Hebrew/English support implemented per-project instead of shared i18n', 0.85, '["1-2Clicks","PostPilot","ExplainIt","ftable","Heroes-Hadera"]', 'Every project reinvents RTL support. Create shared language context + translation pattern.'),
+
+('Rate limiting implemented 3 different ways across projects', 0.85, '["1-2Clicks","PostPilot","ExplainIt"]', '1-2Clicks uses rate-limiter-flexible, PostPilot/ExplainIt use custom Map. Pick one and standardize.'),
+
+('Audit logging exists in newer projects but not older ones', 0.80, '["1-2Clicks","PostPilot"]', 'Add audit logging to ExplainIt, ftable, Heroes-Hadera. Schema: action, userId, metadata, ipAddress, timestamp.'),
+
+('SSRF protection only exists in ExplainIt but any URL-accepting endpoint needs it', 0.85, '["ExplainIt"]', 'PostPilot will need SSRF protection when adding OAuth callbacks. Copy validate-url.ts pattern.'),
+
+('Style DNA / pattern analysis engine in PostPilot could apply to other projects', 0.70, '["PostPilot"]', 'The NLP analysis pattern (keyword classification, emoji detection, frequency analysis) could enhance ftable (tournament patterns) or letsmakebillions (trading signal patterns).');

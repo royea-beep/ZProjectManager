@@ -1,0 +1,37 @@
+{
+  "name": "zprojectmanager",
+  "version": "1.0.0",
+  "description": "Project Operating System — manage all projects from one place",
+  "main": "dist/main/main/main.js",
+  "scripts": {
+    "dev": "npm run build:main && concurrently -k \"npm run dev:renderer\" \"npm run dev:main\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev:main": "tsc -p tsconfig.main.json --watch",
+    "dev:renderer": "vite --config vite.config.ts",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "vite build --config vite.config.ts",
+    "build": "npm run build:main && npm run build:renderer",
+    "start": "npm run build && electron ."
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "recharts": "^2.13.0",
+    "sql.js": "^1.11.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "wait-on": "^8.0.1"
+  }
+}

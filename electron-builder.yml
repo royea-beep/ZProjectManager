@@ -1,0 +1,17 @@
+appId: com.zpm.projectmanager
+productName: ZProjectManager
+directories:
+  output: out
+files:
+  - dist/**/*
+  - package.json
+extraResources:
+  - from: "node_modules/sql.js/dist/sql-wasm.wasm"
+    to: "node_modules/sql.js/dist/sql-wasm.wasm"
+win:
+  target: nsis
+  icon: assets/icon.ico
+publish:
+  provider: github
+  owner: YOUR_GITHUB_USERNAME
+  repo: ZProjectManager
