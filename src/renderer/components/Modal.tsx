@@ -44,10 +44,10 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div ref={modalRef} role="dialog" aria-modal="true" className="relative bg-dark-surface border border-dark-border rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] overflow-auto mx-4 animate-modal">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" className="relative bg-dark-surface border border-dark-border rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] overflow-auto mx-4 animate-modal">
         <div className="flex items-center justify-between p-4 border-b border-dark-border">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-dark-muted hover:text-dark-text text-lg">
+          <h2 id="modal-title" className="text-base font-semibold">{title}</h2>
+          <button onClick={onClose} className="text-dark-muted hover:text-dark-text text-lg p-1 rounded hover:bg-dark-hover transition-colors" aria-label="Close dialog">
             ✕
           </button>
         </div>

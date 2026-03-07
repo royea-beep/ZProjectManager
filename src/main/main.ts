@@ -1,9 +1,11 @@
 import { app, BrowserWindow, screen, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { initDatabase, flushDb } from './database';
+import { initDatabase, flushDb, getAll, runInsert, runQuery } from './database';
 import { registerIpcHandlers } from './ipc';
 import { autoUpdater } from 'electron-updater';
+import { startAutoBackup, stopAutoBackup } from './auto-backup';
+import { detectPatterns } from './pattern-detector';
 
 // Crash reporting — log to file and show dialog
 function getCrashLogPath(): string {
@@ -166,6 +168,12 @@ app.whenReady().then(async () => {
   registerIpcHandlers();
   createWindow();
   setupAutoUpdater();
+  startAutoBackup(6);
+
+  // Auto-detect patterns on startup (delayed to not block UI)
+  setTimeout(() => {
+    try { detectPatterns({ getAll, runInsert, runQuery }); } catch (e) { console.error('[patterns] Auto-detect failed:', e); }
+  }, 5000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -182,5 +190,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  stopAutoBackup();
   flushDb();
 });

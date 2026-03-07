@@ -1,13 +1,20 @@
 import React from 'react';
-import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import { Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { getLastSaveTime } from './services/api';
 import Dashboard from './pages/Dashboard';
 import ProjectDetail from './pages/ProjectDetail';
 import LearningsPage from './pages/LearningsPage';
 import PatternsPage from './pages/PatternsPage';
+import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
+import KanbanPage from './pages/KanbanPage';
+import SynergyPage from './pages/SynergyPage';
 import IdeaCollector from './components/IdeaCollector';
+import GlobalSearch from './components/GlobalSearch';
+import NotificationBell from './components/NotificationBell';
 import { APP_VERSION } from '../shared/constants';
+import { getActiveTimer, STORAGE_KEY } from './components/SessionTimer';
+import { LanguageContext, useLanguageProvider } from './hooks/useLanguage';
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -36,15 +43,138 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: '⊞' },
+  { path: '/kanban', label: 'Kanban', icon: '▦' },
   { path: '/learnings', label: 'Learnings', icon: '◈' },
   { path: '/patterns', label: 'Patterns', icon: '⬡' },
+  { path: '/synergy', label: 'Synergy', icon: '⬢' },
+  { path: '/activity', label: 'Activity', icon: '◎' },
   { path: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
+// Keyboard shortcut definitions
+const SHORTCUTS: { key: string; ctrl?: boolean; alt?: boolean; shift?: boolean; description: string; action: string }[] = [
+  { key: 'k', ctrl: true, description: 'Global Search', action: 'search' },
+  { key: '1', alt: true, description: 'Dashboard', action: 'nav:/' },
+  { key: '2', alt: true, description: 'Kanban', action: 'nav:/kanban' },
+  { key: '3', alt: true, description: 'Learnings', action: 'nav:/learnings' },
+  { key: '4', alt: true, description: 'Patterns', action: 'nav:/patterns' },
+  { key: '5', alt: true, description: 'Synergy', action: 'nav:/synergy' },
+  { key: '6', alt: true, description: 'Activity', action: 'nav:/activity' },
+  { key: '7', alt: true, description: 'Settings', action: 'nav:/settings' },
+  { key: 'n', ctrl: true, description: 'New Project', action: 'new-project' },
+  { key: '/', ctrl: false, description: 'Focus Search', action: 'search' },
+];
+
+function useKeyboardShortcuts(navigate: ReturnType<typeof useNavigate>) {
+  const [showHelp, setShowHelp] = React.useState(false);
+
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Don't fire in inputs/textareas unless it's Ctrl/Alt combos
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (e.key === '?' && e.shiftKey && !isInput) {
+        e.preventDefault();
+        setShowHelp(prev => !prev);
+        return;
+      }
+
+      for (const shortcut of SHORTCUTS) {
+        const ctrlMatch = shortcut.ctrl ? (e.ctrlKey || e.metaKey) : !(e.ctrlKey || e.metaKey);
+        const altMatch = shortcut.alt ? e.altKey : !e.altKey;
+        const shiftMatch = shortcut.shift ? e.shiftKey : !e.shiftKey;
+
+        if (e.key === shortcut.key && ctrlMatch && altMatch && shiftMatch) {
+          // For non-modifier shortcuts, skip if in input
+          if (!shortcut.ctrl && !shortcut.alt && isInput) continue;
+
+          e.preventDefault();
+          if (shortcut.action === 'search') {
+            // GlobalSearch listens for Ctrl+K itself, but '/' also triggers it
+            if (shortcut.key === '/') {
+              window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+            }
+          } else if (shortcut.action.startsWith('nav:')) {
+            navigate(shortcut.action.slice(4));
+          } else if (shortcut.action === 'new-project') {
+            navigate('/?new=1');
+          }
+          return;
+        }
+      }
+
+      // Escape closes help
+      if (e.key === 'Escape' && showHelp) {
+        setShowHelp(false);
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [navigate, showHelp]);
+
+  return { showHelp, setShowHelp };
+}
+
+function ShortcutsHelp({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" onClick={onClose}>
+      <div className="bg-dark-surface border border-dark-border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold">Keyboard Shortcuts</h2>
+          <button onClick={onClose} className="text-dark-muted hover:text-dark-text text-lg">✕</button>
+        </div>
+        <div className="space-y-1">
+          <div className="flex justify-between py-1.5 border-b border-dark-border">
+            <span className="text-sm text-dark-muted">Global Search</span>
+            <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">Ctrl+K</span>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-dark-border">
+            <span className="text-sm text-dark-muted">Focus Search</span>
+            <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">/</span>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-dark-border">
+            <span className="text-sm text-dark-muted">New Project</span>
+            <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">Ctrl+N</span>
+          </div>
+          {navItems.map((item, i) => (
+            <div key={item.path} className="flex justify-between py-1.5 border-b border-dark-border">
+              <span className="text-sm text-dark-muted">{item.label}</span>
+              <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">Alt+{i + 1}</span>
+            </div>
+          ))}
+          <div className="flex justify-between py-1.5">
+            <span className="text-sm text-dark-muted">This Help</span>
+            <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">Shift+?</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isProjectPage = location.pathname.startsWith('/project/');
+  const currentPath = location.pathname;
   const [lastSaved, setLastSaved] = React.useState<string | null>(null);
+  const [activeTimer, setActiveTimer] = React.useState<{ projectId: number; projectName: string } | null>(null);
+  const languageValue = useLanguageProvider();
+  const { showHelp, setShowHelp } = useKeyboardShortcuts(navigate);
+
+  // Poll localStorage for active timer
+  React.useEffect(() => {
+    const checkTimer = () => {
+      const timer = getActiveTimer();
+      setActiveTimer(timer ? { projectId: timer.projectId, projectName: timer.projectName } : null);
+    };
+    checkTimer();
+    const interval = setInterval(checkTimer, 2000);
+    window.addEventListener('storage', checkTimer);
+    return () => { clearInterval(interval); window.removeEventListener('storage', checkTimer); };
+  }, []);
 
   React.useEffect(() => {
     const update = async () => {
@@ -60,33 +190,53 @@ export default function App() {
   }, []);
 
   return (
+    <LanguageContext.Provider value={languageValue}>
     <ErrorBoundary>
     <div className="flex h-screen bg-dark-bg text-dark-text">
-      <nav className="w-56 bg-dark-surface border-r border-dark-border flex flex-col shrink-0">
+      <nav className="sidebar-fixed w-56 bg-dark-surface border-r border-dark-border flex flex-col shrink-0">
         <div className="p-4 border-b border-dark-border">
           <h1 className="text-lg font-bold tracking-tight">ZProjectManager</h1>
           <p className="text-xs text-dark-muted mt-0.5">Project Operating System</p>
         </div>
         <div className="flex-1 py-2">
-          {navItems.map(item => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-                  isActive && !isProjectPage
+          {navItems.map(item => {
+            const isActive = item.path === '/'
+              ? currentPath === '/' && !isProjectPage
+              : currentPath.startsWith(item.path);
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                  isActive
                     ? 'bg-accent-blue/10 text-accent-blue border-r-2 border-accent-blue'
                     : 'text-dark-muted hover:text-dark-text hover:bg-dark-hover'
-                }`
-              }
-            >
-              <span className="text-base">{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
+                }`}
+              >
+                <span className="text-base">{item.icon}</span>
+                {item.label}
+              </NavLink>
+            );
+          })}
         </div>
+        {activeTimer && (
+          <NavLink to={`/project/${activeTimer.projectId}`}
+            className="mx-3 mb-2 px-3 py-2 bg-accent-green/10 border border-accent-green/30 rounded-lg flex items-center gap-2 hover:bg-accent-green/20 transition-colors cursor-pointer">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-green opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-green"></span>
+            </span>
+            <span className="text-xs text-accent-green truncate">Timer: {activeTimer.projectName}</span>
+          </NavLink>
+        )}
         <div className="p-4 border-t border-dark-border text-xs text-dark-muted space-y-0.5">
-          <div>v{APP_VERSION}</div>
+          <div className="flex items-center justify-between">
+            <span>v{APP_VERSION}</span>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <button onClick={() => setShowHelp(true)} className="hover:text-dark-text transition-colors" title="Keyboard shortcuts (Shift+?)">?</button>
+            </div>
+          </div>
           {lastSaved && <div>{lastSaved}</div>}
         </div>
       </nav>
@@ -95,14 +245,20 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/project/:id" element={<ProjectDetail />} />
+          <Route path="/kanban" element={<KanbanPage />} />
           <Route path="/learnings" element={<LearningsPage />} />
           <Route path="/patterns" element={<PatternsPage />} />
+          <Route path="/synergy" element={<SynergyPage />} />
+          <Route path="/activity" element={<ActivityPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
 
       <IdeaCollector />
+      <GlobalSearch />
+      {showHelp && <ShortcutsHelp onClose={() => setShowHelp(false)} />}
     </div>
     </ErrorBoundary>
+    </LanguageContext.Provider>
   );
 }

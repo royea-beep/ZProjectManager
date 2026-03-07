@@ -157,6 +157,52 @@ CREATE TABLE IF NOT EXISTS website_design_scores (
 );
 
 CREATE INDEX IF NOT EXISTS idx_design_scores_project ON website_design_scores(project_id);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER,
+    project_id INTEGER,
+    action TEXT NOT NULL,
+    field_changed TEXT,
+    old_value TEXT,
+    new_value TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_log_project ON audit_log(project_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_date ON audit_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log(entity_type, entity_id);
+
+CREATE TABLE IF NOT EXISTS task_subtasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL REFERENCES project_tasks(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    done INTEGER DEFAULT 0,
+    order_index INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_subtasks_task ON task_subtasks(task_id);
+
+CREATE TABLE IF NOT EXISTS project_tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    tag TEXT NOT NULL,
+    color TEXT DEFAULT '#3b82f6',
+    UNIQUE(project_id, tag)
+);
+CREATE INDEX IF NOT EXISTS idx_tags_project ON project_tags(project_id);
+CREATE INDEX IF NOT EXISTS idx_tags_tag ON project_tags(tag);
+
+CREATE TABLE IF NOT EXISTS project_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    pinned INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_notes_project ON project_notes(project_id);
 `;
 
 function runMigrations(fromVersion: number): void {
@@ -194,6 +240,10 @@ function saveDb(): void {
 }
 
 // Flush pending saves (call before app quit)
+export function getDbPath(): string {
+  return dbPath;
+}
+
 export function flushDb(): void {
   if (savePending) {
     if (saveTimer) clearTimeout(saveTimer);

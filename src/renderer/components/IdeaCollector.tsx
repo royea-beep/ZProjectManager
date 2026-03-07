@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../services/api';
+import { useToast } from './Toast';
 import type { ProcessedIdea, IdeaAction } from '../../shared/types';
 
 const ACTION_ICONS: Record<string, string> = {
@@ -23,6 +24,7 @@ const ACTION_COLORS: Record<string, string> = {
 
 export default function IdeaCollector() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -67,17 +69,28 @@ export default function IdeaCollector() {
     setProcessing(true);
     setResult(null);
     setExecutionResult(null);
-    const res = await api.processIdea(input.trim());
-    setResult(res);
-    setProcessing(false);
+    try {
+      const res = await api.processIdea(input.trim());
+      setResult(res);
+    } catch {
+      toast('Failed to process idea', 'error');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleExecute = async () => {
     if (!result || executing) return;
     setExecuting(true);
-    const res = await api.executeIdea(result.idea.id as number);
-    setExecutionResult(res.results);
-    setExecuting(false);
+    try {
+      const res = await api.executeIdea(result.idea.id as number);
+      setExecutionResult(res.results);
+      toast(`Executed ${res.results.length} action(s)`, 'success');
+    } catch {
+      toast('Failed to execute actions', 'error');
+    } finally {
+      setExecuting(false);
+    }
   };
 
   const handleDismiss = async () => {

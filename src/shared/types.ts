@@ -52,6 +52,15 @@ export interface ProjectTask {
   completed_at: string | null;
 }
 
+export interface TaskSubtask {
+  id: number;
+  task_id: number;
+  title: string;
+  done: number;
+  order_index: number;
+  created_at: string;
+}
+
 export interface ProjectDecision {
   id: number;
   project_id: number;
@@ -166,3 +175,32 @@ export type DesignDimension =
   | 'trust_architecture';
 
 export type DesignStatus = 'not_assessed' | 'needs_work' | 'in_progress' | 'good' | 'excellent';
+
+export interface ProjectTag {
+  id: number;
+  project_id: number;
+  tag: string;
+  color: string;
+}
+
+export interface ProjectNote {
+  id: number;
+  project_id: number;
+  content: string;
+  pinned: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WeeklyDigest {
+  period: { start: string; end: string };
+  projects_worked: { id: number; name: string; sessions: number; tasks_completed: number; tasks_created: number }[];
+  total_sessions: number;
+  total_tasks_completed: number;
+  total_tasks_created: number;
+  decisions_made: number;
+  learnings_added: number;
+  health_changes: { id: number; name: string; old_score: number; new_score: number }[];
+  top_blockers: string[];
+  streak_days: number;
+}
