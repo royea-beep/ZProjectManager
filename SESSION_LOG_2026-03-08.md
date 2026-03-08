@@ -39,4 +39,4 @@ Multi-repo session: ZPM improvements, ftable auth, Wingman analytics, letsmakebi
 - ExplainIt: auth scaffold (AuthProvider) allows adding real auth later without big refactor.
 
 ## Follow-up
-- **Wingman TestFlight:** User asked to check why Wingman is not in TestFlight (investigate after commit).
+- **Wingman TestFlight:** Investigated. Cause: CI runs `eas build` (preview) but never `eas submit`. Builds exist on EAS; none are sent to App Store Connect. Fix: run `eas submit --latest --platform ios --profile production` from `apps/mobile` with `AuthKey_WTWALQMG5N.p8` in place, or add a CI step that submits after build. Added `Wingman/docs/TESTFLIGHT.md` with steps.
