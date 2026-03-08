@@ -366,7 +366,7 @@ export function registerIpcHandlers(): void {
     if (!fs.existsSync(projectsDir)) return [];
 
     const existingPaths = getAll('SELECT repo_path FROM projects').map(p => (p.repo_path as string || '').toLowerCase());
-    const dirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
+    const dirs = fs.readdirSync(projectsDir, { withFileTypes: true })
       .filter(d => d.isDirectory() && !d.name.startsWith('.'))
       .map(d => ({
         name: d.name,
