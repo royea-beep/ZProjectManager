@@ -43,6 +43,16 @@
 
 ---
 
+## Do next (priority order)
+
+1. **Wingman** — In App Store Connect: open build 1.0.0 (5) in TestFlight → complete Export compliance → add internal testers → install from TestFlight app and confirm login screen appears within ~8s.
+2. **Wingman** — Smoke-test sign-in and one full flow; then invite 20–50 for Tel Aviv pilot.
+3. **Heroes-Hadera** — When ready: run `./deploy.sh` from repo (FTP to heroes.ftable.co.il); ensure Supabase env and schema are set on production.
+4. **PostPilot ↔ ftable** — Call PostPilot caption API from ftable’s social/auto-post flow (or cron); add `POSTPILOT_API_URL` + auth in ftable env.
+5. **Rate-limit** — On any new public API (e.g. PostPilot webhook), add rate-limit (copy KeyDrop’s `rate-limit.ts` pattern).
+
+---
+
 ## Quick reference
 
 - **Stale filter:** Dashboard → filter bar → "Stale".
