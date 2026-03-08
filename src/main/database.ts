@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 4;
+const CURRENT_SCHEMA_VERSION = 5;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -252,6 +252,13 @@ function runMigrations(fromVersion: number): void {
   if (fromVersion < 4) {
     db.run(`CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)`);
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)`, ['projects_dir', 'C:\\Projects']);
+  }
+  // Migration 4 -> 5: set Wingman next_action for TestFlight build 5
+  if (fromVersion < 5) {
+    db.run(
+      `UPDATE projects SET next_action = ?, updated_at = datetime('now') WHERE name = 'Wingman'`,
+      ['TestFlight build 5 — add testers & smoke-test']
+    );
   }
 }
 
