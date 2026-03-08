@@ -20,7 +20,7 @@ const ALLOWED_CHANNELS = new Set([
   // Decisions
   'decisions:getAll', 'decisions:create', 'decisions:update', 'decisions:delete',
   // System
-  'system:scanProjectsDir', 'system:getSuggestions', 'system:exportDb', 'system:lastSaveTime',
+  'system:scanProjectsDir', 'system:getAppSetting', 'system:setAppSetting', 'system:getSuggestions', 'system:exportDb', 'system:lastSaveTime',
   'system:openTerminal', 'system:openVscode',
   // Ideas
   'ideas:process', 'ideas:getAll', 'ideas:update', 'ideas:dismiss', 'ideas:execute',

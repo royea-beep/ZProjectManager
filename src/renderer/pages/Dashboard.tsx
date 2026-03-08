@@ -12,7 +12,7 @@ import * as api from '../services/api';
 import type { Suggestion, WeeklyDigest } from '../services/api';
 import { PROJECT_TYPES } from '../../shared/constants';
 
-const STATUS_FILTERS = ['all', 'building', 'launched', 'paused', 'archived', 'idea', 'planning', 'testing'];
+const STATUS_FILTERS = ['all', 'stale', 'building', 'launched', 'paused', 'archived', 'idea', 'planning', 'testing'];
 
 function SuggestionRow({ s, navigate, refresh }: { s: Suggestion; navigate: (path: string) => void; refresh: () => void }) {
   const [open, setOpen] = useState(false);
@@ -201,11 +201,15 @@ export default function Dashboard() {
       const gitProjects = projects.filter(p => p.repo_path && p.has_git).map(p => ({ id: p.id, repo_path: p.repo_path! }));
       const gitMap = gitProjects.length > 0 ? await api.batchGitStatus(gitProjects).catch(() => ({} as Record<number, boolean | null>)) : {};
 
-      // TokenWise costs (1 call for overview, already loaded above)
+      // TokenWise costs: match by repo_path first, then by project name in path
       const costMap: Record<number, number> = {};
       if (tokenWise?.per_project) {
+        const norm = (s: string) => s.replace(/\//g, '\\').toLowerCase();
         for (const pc of tokenWise.per_project) {
-          const match = projects.find(p => p.repo_path && pc.project_path.toLowerCase().includes(p.name.toLowerCase()));
+          const pathNorm = norm(pc.project_path);
+          const match = projects.find(
+            p => p.repo_path && (pathNorm === norm(p.repo_path) || pathNorm.includes(norm(p.name)))
+          );
           if (match) costMap[match.id] = pc.cost;
         }
       }
@@ -227,6 +231,12 @@ export default function Dashboard() {
 
   const filtered = useMemo(() => {
     const list = projects.filter(p => {
+      if (filter === 'stale') {
+        const lastWorked = p.last_worked_at ? new Date(p.last_worked_at).getTime() : 0;
+        const daysAgo = lastWorked ? (Date.now() - lastWorked) / (24 * 60 * 60 * 1000) : 999;
+        if (daysAgo < 14) return false;
+        return true;
+      }
       if (filter !== 'all' && p.status !== filter) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -532,7 +542,10 @@ function CreateProjectModal({ open, onClose, onCreated }: { open: boolean; onClo
   return (
     <Modal open={open} onClose={onClose} title="New Project">
       <div className="space-y-3">
-        <input placeholder="Project name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+        <input placeholder="Project name" value={form.name} onChange={e => {
+          const name = e.target.value;
+          setForm(f => ({ ...f, name, repo_path: f.repo_path === '' || f.repo_path === `C:\\Projects\\${f.name}` ? `C:\\Projects\\${name.trim()}` : f.repo_path }));
+        }}
           className="w-full bg-dark-bg border border-dark-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent-blue/50" />
         <textarea placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
           className="w-full bg-dark-bg border border-dark-border rounded px-3 py-2 text-sm focus:outline-none focus:border-accent-blue/50 h-20 resize-none" />

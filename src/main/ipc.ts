@@ -1,7 +1,7 @@
 import { ipcMain, dialog, app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { runQuery, getAll, getOne, runInsert, flushDb, getLastSaveTime, getDbPath } from './database';
+import { runQuery, getAll, getOne, runInsert, flushDb, getLastSaveTime, getDbPath, getSetting, setSetting } from './database';
 import { launchProjectCommand, launchTerminalCommand, openVSCode } from './launcher';
 import { processIdea, executeIdeaActions } from './idea-engine';
 import { IPC_CHANNELS, DESIGN_DIMENSIONS, WEB_RELEVANT_TYPES } from '../shared/constants';
@@ -11,7 +11,10 @@ import { detectPatterns } from './pattern-detector';
 import { runBackup, getBackupList, getLastBackupTime, restoreBackup, startAutoBackup, getBackupDir_public } from './auto-backup';
 import { generateWeeklyDigest } from './digest';
 
-const PROJECTS_DIR = 'C:\\Projects'; // TODO: Make configurable via settings
+const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
+function getProjectsDir(): string {
+  return getSetting('projects_dir') || DEFAULT_PROJECTS_DIR;
+}
 
 function logAudit(entityType: string, entityId: number, projectId: number | null, action: string, field?: string | null, oldValue?: unknown, newValue?: unknown) {
   runInsert(
@@ -359,20 +362,26 @@ export function registerIpcHandlers(): void {
 
   // ---- SYSTEM: Scan C:\Projects for untracked dirs ----
   ipcMain.handle(IPC_CHANNELS.SCAN_PROJECTS_DIR, () => {
-    if (!fs.existsSync(PROJECTS_DIR)) return [];
+    const projectsDir = getProjectsDir();
+    if (!fs.existsSync(projectsDir)) return [];
 
     const existingPaths = getAll('SELECT repo_path FROM projects').map(p => (p.repo_path as string || '').toLowerCase());
     const dirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
       .filter(d => d.isDirectory() && !d.name.startsWith('.'))
       .map(d => ({
         name: d.name,
-        path: path.join(PROJECTS_DIR, d.name),
-        hasGit: fs.existsSync(path.join(PROJECTS_DIR, d.name, '.git')),
-        hasPackageJson: fs.existsSync(path.join(PROJECTS_DIR, d.name, 'package.json')),
+        path: path.join(projectsDir, d.name),
+        hasGit: fs.existsSync(path.join(projectsDir, d.name, '.git')),
+        hasPackageJson: fs.existsSync(path.join(projectsDir, d.name, 'package.json')),
       }))
       .filter(d => !existingPaths.includes(d.path.toLowerCase()));
 
     return dirs;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_APP_SETTING, (_e, key: string) => getSetting(key));
+  ipcMain.handle(IPC_CHANNELS.SET_APP_SETTING, (_e, key: string, value: string) => {
+    setSetting(key, value);
   });
 
   // ---- SYSTEM: AI-like next step suggestions ----
@@ -501,11 +510,17 @@ export function registerIpcHandlers(): void {
   });
 
   // ---- EXPORT PROJECT REPORT ----
-  ipcMain.handle(IPC_CHANNELS.EXPORT_PROJECT_REPORT, async (_e, projectId: number) => {
+  ipcMain.handle(IPC_CHANNELS.EXPORT_PROJECT_REPORT, async (_e, projectId: number, dateRange?: '7' | '30' | 'all') => {
     const project = getOne('SELECT * FROM projects WHERE id = ?', [projectId]) as Record<string, unknown> | null;
     if (!project) return false;
 
-    const sessions = getAll('SELECT * FROM project_sessions WHERE project_id = ? ORDER BY created_at DESC LIMIT 10', [projectId]);
+    const range = dateRange === '7' || dateRange === '30' ? dateRange : 'all';
+    const sessionsQuery = range === '7'
+      ? "SELECT * FROM project_sessions WHERE project_id = ? AND (created_at >= datetime('now', '-7 days') OR session_date >= date('now', '-7 days')) ORDER BY created_at DESC LIMIT 100"
+      : range === '30'
+        ? "SELECT * FROM project_sessions WHERE project_id = ? AND (created_at >= datetime('now', '-30 days') OR session_date >= date('now', '-30 days')) ORDER BY created_at DESC LIMIT 100"
+        : 'SELECT * FROM project_sessions WHERE project_id = ? ORDER BY created_at DESC LIMIT 10';
+    const sessions = getAll(sessionsQuery, [projectId]);
     const tasks = getAll(`SELECT * FROM project_tasks WHERE project_id = ? ORDER BY
       CASE status WHEN 'in_progress' THEN 0 WHEN 'todo' THEN 1 WHEN 'blocked' THEN 2 WHEN 'done' THEN 3 END,
       created_at DESC`, [projectId]);

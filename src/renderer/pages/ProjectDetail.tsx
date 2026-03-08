@@ -31,6 +31,7 @@ export default function ProjectDetail() {
   const [tab, setTab] = useState(initialTab);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [sessionRefreshKey, setSessionRefreshKey] = useState(0);
+  const [exportRange, setExportRange] = useState<'7' | '30' | 'all'>('all');
   const { toast } = useToast();
 
   const TABS = [...BASE_TABS, 'Design'];
@@ -99,12 +100,23 @@ export default function ProjectDetail() {
             <span className="text-dark-text">{project.name}</span>
           </nav>
           <div className="flex items-center gap-2">
-            <button onClick={async () => {
-              const ok = await api.exportProjectReport(projectId);
-              if (ok) toast('Report exported', 'info');
-            }} className="text-xs text-dark-muted hover:text-dark-text hover:bg-dark-surface px-2 py-1 rounded">
-              Export Report
-            </button>
+            <div className="flex items-center gap-1">
+              <select
+                value={exportRange}
+                onChange={e => setExportRange(e.target.value as '7' | '30' | 'all')}
+                className="text-xs bg-dark-surface border border-dark-border rounded px-2 py-1 text-dark-muted focus:outline-none focus:border-accent-blue/50"
+              >
+                <option value="all">Export: All</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+              </select>
+              <button onClick={async () => {
+                const ok = await api.exportProjectReport(projectId, exportRange);
+                if (ok) toast('Report exported', 'info');
+              }} className="text-xs text-dark-muted hover:text-dark-text hover:bg-dark-surface px-2 py-1 rounded">
+                Export Report
+              </button>
+            </div>
             <button onClick={() => setShowDeleteConfirm(true)}
               className="text-xs text-accent-red/60 hover:text-accent-red hover:bg-accent-red/10 px-2 py-1 rounded">
               Delete Project

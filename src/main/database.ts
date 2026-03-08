@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 4;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -203,11 +203,56 @@ CREATE TABLE IF NOT EXISTS project_notes (
     updated_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_notes_project ON project_notes(project_id);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
 `;
 
 function runMigrations(fromVersion: number): void {
   // Migration 1 -> 2: Add website_design_scores table (already in SCHEMA via CREATE IF NOT EXISTS)
-  // Future migrations go here as: if (fromVersion < 3) { ... }
+  // Migration 2 -> 3: Add manager-set DB strategy pattern and PostPilot decision (idempotent)
+  if (fromVersion < 3) {
+    const patternExists = db.exec(
+      "SELECT 1 FROM cross_project_patterns WHERE pattern LIKE '%Database strategy for Next.js/Prisma%' LIMIT 1"
+    );
+    if (patternExists.length === 0 || (patternExists[0]?.values?.length ?? 0) === 0) {
+      db.run(
+        `INSERT INTO cross_project_patterns (pattern, confidence, supporting_projects, recommendation) VALUES (?, ?, ?, ?)`,
+        [
+          'Database strategy for Next.js/Prisma apps: SQLite local, Postgres in production',
+          0.95,
+          '["PostPilot","1-2Clicks"]',
+          'Local: provider sqlite, DATABASE_URL=file:./*.db so db push works with no server. Production: switch schema to postgresql and set DATABASE_URL to Neon/Vercel/Supabase. Per-project decisions record which approach each project uses.',
+        ]
+      );
+    }
+    const decisionExists = db.exec(
+      "SELECT 1 FROM project_decisions d JOIN projects p ON d.project_id = p.id WHERE p.name = 'PostPilot' AND d.decision LIKE '%SQLite for local%' LIMIT 1"
+    );
+    if (decisionExists.length === 0 || (decisionExists[0]?.values?.length ?? 0) === 0) {
+      const pid = db.exec("SELECT id FROM projects WHERE name = 'PostPilot' LIMIT 1");
+      const projectId = pid[0]?.values?.[0]?.[0];
+      if (projectId != null) {
+        db.run(
+          `INSERT INTO project_decisions (project_id, decision, reason, alternatives_considered, outcome) VALUES (?, ?, ?, ?, ?)`,
+          [
+            projectId,
+            'Use SQLite for local dev; use Postgres for production when deploying',
+            'Minimal local setup (no DB server); production needs scalability and serverless compatibility (e.g. Vercel).',
+            'SQLite everywhere; Postgres everywhere; hybrid by environment.',
+            'SQLite local works with file:./postpilot.db. When deploying: switch schema provider to postgresql and set DATABASE_URL to hosted Postgres.',
+          ]
+        );
+      }
+    }
+  }
+  // Migration 3 -> 4: app_settings for configurable projects dir
+  if (fromVersion < 4) {
+    db.run(`CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)`);
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)`, ['projects_dir', 'C:\\Projects']);
+  }
 }
 
 function getSeedSQL(): string {
@@ -324,6 +369,16 @@ export function getAll(sql: string, params: unknown[] = []): Record<string, unkn
 export function getOne(sql: string, params: unknown[] = []): Record<string, unknown> | undefined {
   const results = getAll(sql, params);
   return results[0];
+}
+
+export function getSetting(key: string): string | null {
+  const row = getOne('SELECT value FROM app_settings WHERE key = ?', [key]);
+  const v = row?.value;
+  return v != null ? String(v) : null;
+}
+
+export function setSetting(key: string, value: string): void {
+  runQuery('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', [key, value]);
 }
 
 export function runInsert(sql: string, params: unknown[] = []): number {

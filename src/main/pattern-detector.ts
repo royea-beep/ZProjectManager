@@ -606,7 +606,10 @@ export function detectPatterns(db: DbHelpers): number {
   allDetected.push(...detectSessionMoodPatterns(db));
   allDetected.push(...detectLaunchVelocityPatterns(db));
 
-  if (allDetected.length === 0) return 0;
+  // Preserve manager-set patterns (merge, don't overwrite)
+  const managerPatterns = db.getAll(
+    "SELECT pattern, confidence, supporting_projects, recommendation, detected_at, last_validated_at FROM cross_project_patterns WHERE pattern LIKE '%Database strategy for Next.js/Prisma%'"
+  );
 
   // Clear old detected patterns and insert fresh ones
   db.runQuery("DELETE FROM cross_project_patterns");
@@ -619,6 +622,22 @@ export function detectPatterns(db: DbHelpers): number {
       `INSERT INTO cross_project_patterns (pattern, confidence, supporting_projects, recommendation, detected_at, last_validated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [p.pattern, p.confidence, JSON.stringify(p.supporting_projects), p.recommendation, now, now]
+    );
+    count++;
+  }
+
+  for (const row of managerPatterns) {
+    db.runInsert(
+      `INSERT INTO cross_project_patterns (pattern, confidence, supporting_projects, recommendation, detected_at, last_validated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        row.pattern,
+        row.confidence ?? 0.5,
+        row.supporting_projects ?? null,
+        row.recommendation ?? null,
+        row.detected_at ?? now,
+        row.last_validated_at ?? now,
+      ]
     );
     count++;
   }

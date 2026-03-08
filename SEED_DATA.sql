@@ -104,6 +104,13 @@ INSERT INTO learnings (project_id, learning, category, impact_score) VALUES
 (NULL, 'Audit logging is in 1-2Clicks and PostPilot but missing from ExplainIt. Add it everywhere — it costs nothing and saves debugging hours.', 'technical', 7);
 
 -- ============================================
+-- INITIAL PROJECT DECISIONS (manager-set conventions)
+-- ============================================
+
+INSERT INTO project_decisions (project_id, decision, reason, alternatives_considered, outcome) VALUES
+((SELECT id FROM projects WHERE name='PostPilot' LIMIT 1), 'Use SQLite for local dev; use Postgres for production when deploying', 'Minimal local setup (no DB server); production needs scalability and serverless compatibility (e.g. Vercel).', 'SQLite everywhere; Postgres everywhere; hybrid by environment.', 'SQLite local works with file:./postpilot.db. When deploying: switch schema provider to postgresql and set DATABASE_URL to hosted Postgres.');
+
+-- ============================================
 -- INITIAL CROSS-PROJECT PATTERNS
 -- ============================================
 
@@ -130,4 +137,6 @@ INSERT INTO cross_project_patterns (pattern, confidence, supporting_projects, re
 
 ('SSRF protection only exists in ExplainIt but any URL-accepting endpoint needs it', 0.85, '["ExplainIt"]', 'PostPilot will need SSRF protection when adding OAuth callbacks. Copy validate-url.ts pattern.'),
 
-('Style DNA / pattern analysis engine in PostPilot could apply to other projects', 0.70, '["PostPilot"]', 'The NLP analysis pattern (keyword classification, emoji detection, frequency analysis) could enhance ftable (tournament patterns) or letsmakebillions (trading signal patterns).');
+('Style DNA / pattern analysis engine in PostPilot could apply to other projects', 0.70, '["PostPilot"]', 'The NLP analysis pattern (keyword classification, emoji detection, frequency analysis) could enhance ftable (tournament patterns) or letsmakebillions (trading signal patterns).'),
+
+('Database strategy for Next.js/Prisma apps: SQLite local, Postgres in production', 0.95, '["PostPilot","1-2Clicks"]', 'Local: provider sqlite, DATABASE_URL=file:./*.db so db push works with no server. Production: switch schema to postgresql and set DATABASE_URL to Neon/Vercel/Supabase. Per-project decisions record which approach each project uses.')

@@ -202,6 +202,8 @@ export const IPC_CHANNELS = {
   OPEN_VSCODE: 'system:openVscode',
   // System
   SCAN_PROJECTS_DIR: 'system:scanProjectsDir',
+  GET_APP_SETTING: 'system:getAppSetting',
+  SET_APP_SETTING: 'system:setAppSetting',
   GET_SUGGESTIONS: 'system:getSuggestions',
   // Ideas
   PROCESS_IDEA: 'ideas:process',

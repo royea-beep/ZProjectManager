@@ -7,7 +7,7 @@ A desktop app using **Electron + React + SQLite** that serves as a Project Opera
 - **Electron** (latest stable) — desktop container
 - **React 18** — UI
 - **TypeScript** — all code must be TypeScript
-- **better-sqlite3** — SQLite database (synchronous, fast, native)
+- **sql.js** — SQLite database (WASM, runs in main process)
 - **Tailwind CSS** — styling
 - **electron-builder** — packaging
 - **Vite** — bundler for React (fast HMR)

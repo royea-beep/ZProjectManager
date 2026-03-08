@@ -32,6 +32,8 @@ export default function SettingsPage() {
   const [scanning, setScanning] = useState(false);
   const [imported, setImported] = useState<string[]>([]);
   const [exportMsg, setExportMsg] = useState('');
+  const [projectsDir, setProjectsDir] = useState('');
+  const [projectsDirSaved, setProjectsDirSaved] = useState(false);
 
   // Backup state
   const [lastBackupTime, setLastBackupTime] = useState<string | null>(null);
@@ -68,10 +70,16 @@ export default function SettingsPage() {
     setDbPath(path);
   }, []);
 
+  const loadProjectsDir = useCallback(async () => {
+    const dir = await api.getAppSetting('projects_dir');
+    setProjectsDir(dir ?? 'C:\\Projects');
+  }, []);
+
   useEffect(() => {
     loadBackupData();
     loadStats();
-  }, [loadBackupData, loadStats]);
+    loadProjectsDir();
+  }, [loadBackupData, loadStats, loadProjectsDir]);
 
   const handleScan = async () => {
     setScanning(true);
@@ -332,10 +340,35 @@ export default function SettingsPage() {
         </div>
 
         <div className="bg-dark-surface border border-dark-border rounded-lg p-4">
+          <h3 className="text-sm font-medium mb-3">Projects Folder</h3>
+          <p className="text-xs text-dark-muted mt-0.5 mb-2">Folder to scan for untracked projects (e.g. C:\\Projects)</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={projectsDir}
+              onChange={e => { setProjectsDir(e.target.value); setProjectsDirSaved(false); }}
+              placeholder="C:\Projects"
+              className="flex-1 bg-dark-bg border border-dark-border rounded px-3 py-1.5 text-sm text-dark-text placeholder-dark-muted focus:outline-none focus:border-accent-blue"
+            />
+            <button
+              onClick={async () => {
+                await api.setAppSetting('projects_dir', projectsDir.trim() || 'C:\\Projects');
+                setProjectsDirSaved(true);
+                toast('Projects folder saved', 'success');
+                setTimeout(() => setProjectsDirSaved(false), 2000);
+              }}
+              className="px-3 py-1.5 text-sm bg-accent-blue text-white rounded hover:bg-accent-blue/80 whitespace-nowrap"
+            >
+              {projectsDirSaved ? 'Saved' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-dark-surface border border-dark-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-sm font-medium">Auto-Detect Projects</h3>
-              <p className="text-xs text-dark-muted mt-0.5">Scan C:\Projects for folders not yet tracked</p>
+              <p className="text-xs text-dark-muted mt-0.5">Scan the projects folder above for folders not yet tracked</p>
             </div>
             <button onClick={handleScan} disabled={scanning}
               className="px-3 py-1.5 text-sm bg-accent-blue text-white rounded hover:bg-accent-blue/80 disabled:opacity-50">

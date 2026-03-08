@@ -120,15 +120,20 @@ const LIBRARIES: ReusableLib[] = [
   { name: 'FTC Coin Economy', source: 'ftable', file: 'js/ftcRewards.js', category: 'gamification', description: 'Earn/spend coins with dedup, streak bonuses', canUseIn: ['Heroes-Hadera'], effort: 'medium' },
   { name: 'Affiliate System', source: 'chicle', file: 'index.html', category: 'gamification', description: '3-tier referral tracking with commissions', canUseIn: ['ftable referral'], effort: 'medium' },
   { name: 'Coin Constants', source: 'Wingman', file: 'packages/shared/constants.ts', category: 'gamification', description: 'Structured rewards, daily caps, level tiers', canUseIn: ['Any gamified app'], effort: 'trivial' },
+  // Packaged mini-utils (@royea/*)
+  { name: 'url-guard', source: 'url-guard', file: 'src/index.ts', category: 'auth', description: 'SSRF-safe URL validation + DNS rebinding. Used: ExplainIt, PostPilot (future logoUrl/website).', canUseIn: ['Any project accepting URLs'], effort: 'trivial' },
+  { name: 'PromptGuard', source: 'PromptGuard', file: 'src/index.ts', category: 'ai', description: 'Sanitize user text before LLMs. Used: Wingman, PostPilot, preprompt-web.', canUseIn: ['Any AI app'], effort: 'trivial' },
+  { name: 'CoinLedger', source: 'CoinLedger', file: 'src/index.ts', category: 'gamification', description: 'Virtual currency: credit/debit/balance, idempotency, memory + Prisma adapters', canUseIn: ['Wingman', 'ftable', 'chicle', 'Any app with coins'], effort: 'easy' },
+  { name: 'FlushQueue', source: 'FlushQueue', file: 'src/index.ts', category: 'analytics', description: 'Client event buffer, batch POST, retry. Used: PostPilot, KeyDrop, ExplainIt. Next: Wingman.', canUseIn: ['Any web/RN app'], effort: 'easy' },
 ];
 
 const OPPORTUNITIES: Opportunity[] = [
   // Quick wins
-  { action: 'Copy ftTracker.js to Heroes', from: 'ftable', to: 'Heroes-Hadera', effort: 'quick', impact: 'high', description: 'Full analytics in 10 minutes — just copy the file and add the script tag' },
-  { action: 'Copy errorHandler.js to Heroes', from: 'ftable', to: 'Heroes-Hadera', effort: 'quick', impact: 'medium', description: 'Error logging to Supabase in 5 minutes' },
-  { action: 'Upgrade Heroes Supabase client', from: 'ftable', to: 'Heroes-Hadera', effort: 'quick', impact: 'high', description: 'Replace 9-line config with full supabaseClient.js (auth guards, toast, XSS)' },
+  { action: 'Copy ftTracker.js to Heroes', from: 'ftable', to: 'Heroes-Hadera', effort: 'quick', impact: 'high', description: '✓ Done — Heroes has tracker.js + errorHandler.js on all pages' },
+  { action: 'Copy errorHandler.js to Heroes', from: 'ftable', to: 'Heroes-Hadera', effort: 'quick', impact: 'medium', description: '✓ Done — Heroes has errorHandler.js (Supabase js_errors)' },
+  { action: 'Upgrade Heroes Supabase client', from: 'ftable', to: 'Heroes-Hadera', effort: 'quick', impact: 'high', description: '✓ Done — auth-guard.js (requireAuth + esc), Auth + Utils in place' },
   { action: 'Copy rate-limit.ts to APIs', from: 'KeyDrop', to: 'Any API', effort: 'quick', impact: 'medium', description: 'Drop-in DDoS protection for any public endpoint' },
-  { action: 'Use TokenWise estimator in ZPM', from: 'TokenWise', to: 'ZProjectManager', effort: 'quick', impact: 'medium', description: 'Show AI cost per project in the dashboard' },
+  { action: 'Use TokenWise estimator in ZPM', from: 'TokenWise', to: 'ZProjectManager', effort: 'quick', impact: 'medium', description: '✓ Done — Dashboard shows cost, sort by cost, per-project on cards' },
   // Medium effort
   { action: 'Connect PostPilot to ftable', from: 'PostPilot', to: 'ftable', effort: 'medium', impact: 'high', description: 'Auto-generate social posts for tournaments, news, club features' },
   { action: 'Add mini-games to FTC', from: 'chicle', to: 'ftable', effort: 'medium', impact: 'high', description: 'Spin wheel + scratch card for earning FTC coins = engagement boost' },

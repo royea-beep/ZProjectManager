@@ -95,6 +95,8 @@ export interface Suggestion {
 }
 
 export const scanProjectsDir = () => invoke(IPC_CHANNELS.SCAN_PROJECTS_DIR) as Promise<ScannedProject[]>;
+export const getAppSetting = (key: string) => invoke(IPC_CHANNELS.GET_APP_SETTING, key) as Promise<string | null>;
+export const setAppSetting = (key: string, value: string) => invoke(IPC_CHANNELS.SET_APP_SETTING, key, value) as Promise<void>;
 export const getSuggestions = () => invoke(IPC_CHANNELS.GET_SUGGESTIONS) as Promise<Suggestion[]>;
 export const openTerminal = (repoPath: string) => invoke(IPC_CHANNELS.OPEN_TERMINAL, repoPath) as Promise<{ ok: boolean }>;
 export const openVSCode = (repoPath: string) => invoke(IPC_CHANNELS.OPEN_VSCODE, repoPath) as Promise<{ ok: boolean }>;
@@ -190,7 +192,8 @@ export interface SearchResult {
 export const globalSearch = (query: string) => invoke(IPC_CHANNELS.GLOBAL_SEARCH, query) as Promise<SearchResult[]>;
 
 // Export
-export const exportProjectReport = (projectId: number) => invoke(IPC_CHANNELS.EXPORT_PROJECT_REPORT, projectId) as Promise<boolean>;
+export const exportProjectReport = (projectId: number, dateRange?: '7' | '30' | 'all') =>
+  invoke(IPC_CHANNELS.EXPORT_PROJECT_REPORT, projectId, dateRange ?? 'all') as Promise<boolean>;
 
 // Weekly Digest
 import type { WeeklyDigest } from '../../shared/types';

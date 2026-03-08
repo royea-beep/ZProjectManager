@@ -7,7 +7,7 @@ It tracks every project, remembers work sessions, launches dev environments, sho
 ## Tech Stack
 - **Electron** — desktop container (terminals, file access, system commands)
 - **React 18** — UI framework
-- **SQLite** (via better-sqlite3) — local database
+- **SQLite** (via sql.js) — local database
 - **Tailwind CSS** — styling
 - **TypeScript** — type safety
 
@@ -51,6 +51,14 @@ ZProjectManager/
 - Must feel faster than not using it
 - Launch profiles open real terminals (PowerShell on Windows)
 - Session resume: show last session summary when opening a project
+
+## Agent / Manager Workflow
+- **If the task needs something only the user can provide** (API key, OAuth connection, account signup, secret): give a **CLI command** or **link** (e.g. “Run: …” or “Open: …”) so they can do that step; don’t block the rest of the work.
+- **If no secret or external account is needed:** go ahead and do it (implement, fix, refactor).
+- **Use agents and tools whenever they help** (subagents, terminal, search, etc.).
+
+## Manager Decisions (database & conventions)
+- **Database strategy for Next.js + Prisma apps (e.g. PostPilot, KeyDrop):** Use **SQLite for local dev** (zero setup, `DATABASE_URL="file:./dev.db"` or `file:./postpilot.db`). Use **Postgres for production** when deploying (Vercel/Neon/Supabase). Per project we can choose: SQLite-only, Postgres-only, or this hybrid; the system records the choice in project decisions and cross-project patterns so the same approach can be reused or adjusted per project.
 
 ## Development
 - `npm run dev` — start Electron in dev mode

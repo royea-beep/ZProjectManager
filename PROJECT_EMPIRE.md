@@ -105,6 +105,7 @@
 |---------|--------------|---------|-------------|------------|
 | SQLite WASM Wrapper | TokenWise | `src/database.ts` | sql.js lazy-load, auto-migration, PRAGMA setup | ZProjectManager, any Node.js app |
 | Prisma Singleton | PostPilot, KeyDrop | `src/lib/db.ts` | Single PrismaClient instance with dev reuse | Any Prisma app |
+| **DB convention** | PostPilot, KeyDrop | — | SQLite local (`file:./*.db`), Postgres in production; per-project choice recorded in ZProjectManager decisions/patterns | Next.js+Prisma apps |
 | JSONL Database | MegaPromptGPT | `megaprompt_local.py` | Append/read JSONL with safe I/O | Lightweight data storage |
 | SQLite Connection | clubgg | `db/connection.py` | Python SQLite with WAL, foreign keys, auto-schema | Python data projects |
 | Safe File I/O | MegaPromptGPT | `megaprompt_local.py` | Pathlib-based read/write with parent mkdir | Any Python project |
@@ -151,7 +152,16 @@
 | Backtest Engine | cryptowhale | `backtest/engine.py` | Historical trade simulation + Sharpe ratio | Strategy validation |
 | Monte Carlo Sim | cryptowhale | `analysis/monte_carlo.py` | 1,000-path portfolio resilience testing | Risk analysis |
 
-### 2I. Gamification & Economy
+### 2I. Packaged mini-utils (@royea/*)
+
+| Library | Package | What It Does | Used In Now | Can Use In Next |
+|---------|---------|--------------|-------------|------------------|
+| url-guard | @royea/url-guard | SSRF-safe URL validation plus DNS rebinding; validateUrl, validateResolvedIp, clampMaxScreens. | ExplainIt (shared-utils), PostPilot (lib/url-validate.ts for future logoUrl/website). | Any API that accepts user URLs. |
+| PromptGuard | @royea/prompt-guard | Sanitize user text before LLMs: PII masking and prompt-injection blocking. | Wingman (ai.service), PostPilot (ai-captions), **preprompt-web** (lib/ai.js before OpenAI). | Any app sending user text to an LLM. |
+| CoinLedger | @royea/coin-ledger | Virtual currency: credit/debit/balance, idempotency, in-memory and Prisma adapters. | — | Wingman, ftable, chicle, any app with coins. |
+| FlushQueue | @royea/flush-queue | Client event buffer, batch POST to endpoint, retry, offline persist. | PostPilot, **KeyDrop** (Prisma AnalyticsEvent), **ExplainIt** (API only, no persistence yet). | Wingman (analytics). |
+
+### 2J. Gamification & Economy
 
 | Library | Source Project | File(s) | What It Does | Can Use In |
 |---------|--------------|---------|-------------|------------|
@@ -174,6 +184,7 @@
 | 3 | Upgrade Heroes supabase-config to full supabaseClient.js | ftable | Heroes | 30 min | Auth guards, OAuth, toast, XSS |
 | 4 | Copy rate-limit.ts to any new API | KeyDrop/PostPilot | Any | 5 min | DDoS protection |
 | 5 | Use TokenWise estimator in ZProjectManager | TokenWise | ZPM | 1 hr | Show AI cost per project |
+| 6 | Add FlushQueue to KeyDrop or ExplainIt | FlushQueue | KeyDrop / ExplainIt | 1 hr | Client analytics/events with batch + retry |
 
 ### 3B. Medium Effort (adapt + integrate)
 
