@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 5;
+const CURRENT_SCHEMA_VERSION = 6;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -259,6 +259,24 @@ function runMigrations(fromVersion: number): void {
       `UPDATE projects SET next_action = ?, updated_at = datetime('now') WHERE name = 'Wingman'`,
       ['TestFlight build 5 — add testers & smoke-test']
     );
+  }
+  // Migration 5 -> 6: session 2026-03-08 learnings (idempotent)
+  if (fromVersion < 6) {
+    const anchor = db.exec("SELECT 1 FROM learnings WHERE learning LIKE '%PostPilot ftable caption API%' LIMIT 1");
+    if (anchor.length === 0 || (anchor[0]?.values?.length ?? 0) === 0) {
+      const learnings: [null, string, string, number][] = [
+        [null, 'PostPilot ftable caption API: rate-limit and API-key auth so Supabase Edge can call from auto-post-social; keep POSTPILOT_FTABLE_API_KEY in host env and mirror in ftable Edge secrets.', 'technical', 8],
+        [null, 'Heroes deploy on Windows: use Git Bash for deploy.sh; FTP_PASS from ftable .env.', 'process', 7],
+        [null, 'ZPM: use migrations to set next_action and insert learnings on app startup; avoids manual DB edits.', 'process', 8],
+        [null, 'Batch commits across repos: stage only feature files; exclude .claude, local config, data/cache; one logical commit per repo.', 'process', 7],
+      ];
+      for (const row of learnings) {
+        db.run(
+          'INSERT INTO learnings (project_id, learning, category, impact_score) VALUES (?, ?, ?, ?)',
+          [row[0], row[1], row[2], row[3]]
+        );
+      }
+    }
   }
 }
 
