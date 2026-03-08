@@ -45,6 +45,8 @@
 
 ## Do next (priority order)
 
+**Do first (manual):** Wingman TestFlight — App Store Connect → build 1.0.0 (5) → Export compliance → add testers → install and smoke-test. See `Wingman/docs/APP_STORE_CONNECT_CHECKLIST.md`.
+
 1. **Wingman** — In App Store Connect: open build 1.0.0 (5) in TestFlight → complete Export compliance → add internal testers → install from TestFlight app and confirm login screen appears within ~8s. **Checklist:** `Wingman/docs/APP_STORE_CONNECT_CHECKLIST.md`.
 2. **Wingman** — Smoke-test sign-in and one full flow; then invite 20–50 for Tel Aviv pilot.
 3. **Heroes-Hadera** — When ready: run `./deploy.sh` from repo (FTP to heroes.ftable.co.il); ensure Supabase env and schema are set on production.
