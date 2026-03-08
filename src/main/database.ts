@@ -281,7 +281,9 @@ function runMigrations(fromVersion: number): void {
 }
 
 function getSeedSQL(): string {
-  const seedPath = path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, '../../../'), 'SEED_DATA.sql');
+  // Prefer app root (package.json dir) so seed is found in dev and packaged app
+  const appRoot = app.isPackaged ? process.resourcesPath : app.getAppPath();
+  const seedPath = path.join(appRoot, 'SEED_DATA.sql');
   if (fs.existsSync(seedPath)) {
     return fs.readFileSync(seedPath, 'utf-8');
   }
@@ -349,15 +351,10 @@ export async function initDatabase(): Promise<void> {
   const currentVersion = versionResult.length > 0 ? (versionResult[0].values[0][0] as number) : 0;
 
   if (currentVersion === 0) {
-    db.run('INSERT INTO schema_version (version) VALUES (?)', [CURRENT_SCHEMA_VERSION]);
+    db.run('INSERT INTO schema_version (version) VALUES (?)', [0]);
   }
 
-  // Run migrations for existing databases
-  if (currentVersion > 0 && currentVersion < CURRENT_SCHEMA_VERSION) {
-    runMigrations(currentVersion);
-    db.run('UPDATE schema_version SET version = ?', [CURRENT_SCHEMA_VERSION]);
-  }
-
+  // Seed new DB first so projects exist before migrations (e.g. migration 5 updates Wingman)
   if (isNew) {
     const seed = getSeedSQL();
     if (seed) {
@@ -365,6 +362,29 @@ export async function initDatabase(): Promise<void> {
         db.exec(seed);
       } catch (err) {
         console.error('Failed to execute seed SQL:', err);
+      }
+    }
+  }
+
+  // Run migrations (including for new DBs so migration 6 learnings get inserted)
+  if (currentVersion < CURRENT_SCHEMA_VERSION) {
+    runMigrations(currentVersion);
+    db.run('UPDATE schema_version SET version = ?', [CURRENT_SCHEMA_VERSION]);
+  } else if (currentVersion === CURRENT_SCHEMA_VERSION) {
+    // One-time backfill: if DB is at v6 but missing migration 6 learnings (e.g. was created before fix), insert them
+    const anchor = db.exec("SELECT 1 FROM learnings WHERE learning LIKE '%PostPilot ftable caption API%' LIMIT 1");
+    if (anchor.length === 0 || (anchor[0]?.values?.length ?? 0) === 0) {
+      const learnings: [null, string, string, number][] = [
+        [null, 'PostPilot ftable caption API: rate-limit and API-key auth so Supabase Edge can call from auto-post-social; keep POSTPILOT_FTABLE_API_KEY in host env and mirror in ftable Edge secrets.', 'technical', 8],
+        [null, 'Heroes deploy on Windows: use Git Bash for deploy.sh; FTP_PASS from ftable .env.', 'process', 7],
+        [null, 'ZPM: use migrations to set next_action and insert learnings on app startup; avoids manual DB edits.', 'process', 8],
+        [null, 'Batch commits across repos: stage only feature files; exclude .claude, local config, data/cache; one logical commit per repo.', 'process', 7],
+      ];
+      for (const row of learnings) {
+        db.run(
+          'INSERT INTO learnings (project_id, learning, category, impact_score) VALUES (?, ?, ?, ?)',
+          [row[0], row[1], row[2], row[3]]
+        );
       }
     }
   }
