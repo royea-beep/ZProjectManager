@@ -1,5 +1,7 @@
 # Session memory (2026-03-08)
 
+**User preference (always):** When the user must do something, make it the **simplest possible**. Prefer in order: **1) CLI** (one command or copy-paste) → **2) API key / secret** (single value to paste) → **3) Direct link + short step-by-step**. Save the chosen form in project docs so it’s in “hard memory” for next time.
+
 **Last session:** Do-next execution, PostPilot–ftable caption API, Heroes deploy, batch commits, learnings + migration.
 
 - **Wingman:** TestFlight build **1.0.0 (8)** submitted; Sentry mobile re-enabled. Next: App Store Connect (add testers, export compliance), smoke-test. See docs/TESTFLIGHT.md, docs/SENTRY_MOBILE.md. Delete account implemented; subscription verify is stub — see docs/SUBSCRIPTION.md.

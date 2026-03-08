@@ -1,0 +1,19 @@
+---
+description: Prefer subagents to do the work; main agent supervises. Fast, parallel, good.
+alwaysApply: true
+---
+
+# Agent-First Workflow (Supervisor Model)
+
+**Default: use subagents to do the job; you supervise.** That’s how we go good and fast.
+
+- **Multi-step or exploratory work:** Delegate to the right subagent type instead of doing everything yourself:
+  - **explore** — Codebase discovery, “where is X?”, “how does Y work?”, file/pattern search. Use for broad or unfamiliar code.
+  - **shell** — Git, npm, EAS, any CLI. Use for commands and scripts.
+  - **generalPurpose** — Research, multi-step tasks, keyword/code search when scope is wide.
+  - **code-reviewer** — Proactive review, security, performance, config. Use before or after changes.
+  - **bug-analyzer** — Deep execution flow, root cause, variable/state tracing.
+  - **dev-planner** — Break down features, roadmaps, dependencies, timelines.
+- **You (main agent):** Decide what to delegate, launch agents (in parallel when possible), summarize results, fix or integrate, and give the user one clear answer.
+- **Don’t block on one agent:** If multiple things can run in parallel (e.g. explore 90soccer + run Wingman build), launch multiple agents in the same turn.
+- **User-only steps** (API keys, OAuth, secrets): Make it **simplest possible**: prefer 1) CLI → 2) API key → 3) Direct link + short steps. Prefer all three when useful (e.g. “Open: <link>” and “Or run: `gh …`”). **Persist** these in project docs (e.g. DEPLOY.md, README) so they’re in memory for next time.

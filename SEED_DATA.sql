@@ -33,7 +33,9 @@ INSERT INTO projects (name, description, type, stage, status, priority, goal, te
 
 ('1-2Clicks', 'Secure credential collector — send a link, client submits API keys encrypted, developer retrieves them', 'web-app', 'development', 'building', 'high', 'Let freelance devs collect client API keys securely via 1-2 click mobile links', '["Next.js 16","TypeScript","Prisma 7","SQLite","AES-256-GCM","JWT","Tailwind","Zod"]', 'C:\Projects\KeyDrop', 1, NULL, NULL, 'Add OAuth provider flows (Facebook, Google), AI-powered guide generation, deploy to Vercel', 80, '2026-03-06'),
 
-('PostPilot', 'AI social media copilot — agency sends client a link, client uploads content, AI generates captions in their voice, publishes to all platforms', 'saas', 'development', 'building', 'high', 'Zero-friction social media posting with AI Style DNA learning', '["Next.js 16","TypeScript","Prisma 6","SQLite","Claude Haiku API","AES-256-GCM","JWT","Tailwind","Zod"]', 'C:\Projects\PostPilot', 1, 'Per-brand SaaS subscription for agencies', 'OAuth connect flow for Instagram/Facebook/TikTok not yet built', 'Implement real OAuth connect flow for at least Instagram, then deploy', 85, '2026-03-06');
+('PostPilot', 'AI social media copilot — agency sends client a link, client uploads content, AI generates captions in their voice, publishes to all platforms', 'saas', 'development', 'building', 'high', 'Zero-friction social media posting with AI Style DNA learning', '["Next.js 16","TypeScript","Prisma 6","SQLite","Claude Haiku API","AES-256-GCM","JWT","Tailwind","Zod"]', 'C:\Projects\PostPilot', 1, 'Per-brand SaaS subscription for agencies', 'OAuth connect flow for Instagram/Facebook/TikTok not yet built', 'Implement real OAuth connect flow for at least Instagram, then deploy', 85, '2026-03-06'),
+
+('90soccer', 'Football clip quiz — watch 10s clip, answer questions, 5 levels, leaderboard. Next.js + Capacitor iOS/Android.', 'mobile-app', 'development', 'building', 'high', 'Ship to TestFlight and Google Play internal; grow daily challenge + Facebook auto-post', '["Next.js 16","Capacitor","Supabase","Tailwind","TypeScript"]', 'C:\Projects\90soccer', 1, NULL, 'CI secrets for iOS/Android; ensure static export to out/ for Capacitor', 'Configure GitHub Actions secrets; run content pipeline; add DEPLOY.md', 75, '2026-03-08');
 
 -- ============================================
 -- LAUNCH COMMANDS
@@ -80,7 +82,11 @@ INSERT INTO project_commands (project_id, label, command, command_type, shell, a
 ((SELECT id FROM projects WHERE name='PostPilot'), 'Dev Server', 'npm run dev', 'terminal', 'powershell', 0, 1, '["3000"]'),
 ((SELECT id FROM projects WHERE name='PostPilot'), 'Open Browser', 'start http://localhost:3000', 'browser', 'powershell', 0, 2, NULL),
 ((SELECT id FROM projects WHERE name='PostPilot'), 'Prisma Studio', 'npx prisma studio', 'terminal', 'powershell', 0, 3, '["5555"]'),
-((SELECT id FROM projects WHERE name='PostPilot'), 'Open in VS Code', 'code C:\Projects\PostPilot', 'vscode', 'powershell', 0, 4, NULL);
+((SELECT id FROM projects WHERE name='PostPilot'), 'Open in VS Code', 'code C:\Projects\PostPilot', 'vscode', 'powershell', 0, 4, NULL),
+
+((SELECT id FROM projects WHERE name='90soccer'), 'Dev Server', 'npm run dev', 'terminal', 'powershell', 0, 1, '["3000"]'),
+((SELECT id FROM projects WHERE name='90soccer'), 'Open in VS Code', 'code C:\Projects\90soccer', 'vscode', 'powershell', 0, 2, NULL),
+((SELECT id FROM projects WHERE name='90soccer'), 'Content Pipeline', 'npx tsx agents/pipeline.ts', 'terminal', 'powershell', 0, 3, NULL);
 
 -- ============================================
 -- INITIAL LEARNINGS (from audit patterns)
