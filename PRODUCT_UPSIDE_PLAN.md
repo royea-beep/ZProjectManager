@@ -74,7 +74,7 @@ PostPilot's publish endpoint creates DB records but **never calls Instagram/Face
 | Add VS Code extension to TokenWise | No revenue model. Build adoption first. |
 | Create landing pages for all packages | Only SecretSauce needs one (revenue product). |
 | Rewrite chicle gamification | 2-3 week project. Not worth it yet. |
-| Build 90soccer content pipeline | No clear monetization path. |
+| Build 9soccer content pipeline | No clear monetization path. |
 
 ---
 

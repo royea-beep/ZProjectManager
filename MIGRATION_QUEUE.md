@@ -48,7 +48,7 @@
 ### F2: Gamification engine extraction
 - **When:** Chicle is refactored OR a 2nd project needs gamification
 - **What:** Extract coins, streaks, games, badges from chicle SPA to @royea/gamification
-- **Projects:** chicle → ftable, 90soccer, Wingman
+- **Projects:** chicle → ftable, 9soccer, Wingman
 
 ### F3: Hebrew date utils extraction
 - **When:** A 4th Hebrew project is created

@@ -15,5 +15,5 @@ alwaysApply: true
   - **bug-analyzer** — Deep execution flow, root cause, variable/state tracing.
   - **dev-planner** — Break down features, roadmaps, dependencies, timelines.
 - **You (main agent):** Decide what to delegate, launch agents (in parallel when possible), summarize results, fix or integrate, and give the user one clear answer.
-- **Don’t block on one agent:** If multiple things can run in parallel (e.g. explore 90soccer + run Wingman build), launch multiple agents in the same turn.
+- **Don’t block on one agent:** If multiple things can run in parallel (e.g. explore 9soccer + run Wingman build), launch multiple agents in the same turn.
 - **User-only steps** (API keys, OAuth, secrets): Make it **simplest possible**: prefer 1) CLI → 2) API key → 3) Direct link + short steps. Prefer all three when useful (e.g. “Open: <link>” and “Or run: `gh …`”). **Persist** these in project docs (e.g. DEPLOY.md, README) so they’re in memory for next time.

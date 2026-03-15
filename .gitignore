@@ -9,3 +9,4 @@ Thumbs.db
 !src/**/*.db
 .vscode/
 .idea/
+CLAUDE.md

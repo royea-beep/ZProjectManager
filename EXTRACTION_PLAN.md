@@ -121,7 +121,7 @@ interface PaymentModule {
 5. Add persistence adapter (localStorage default, Supabase optional)
 6. Wire CoinLedger as the underlying coin storage
 
-**Target Users:** ftable, 90soccer, Heroes-Hadera, Wingman
+**Target Users:** ftable, 9soccer, Heroes-Hadera, Wingman
 
 **Depends On:** CoinLedger published first (Extraction 4 uses it as storage backend)
 
@@ -164,7 +164,7 @@ interface PaymentModule {
 2. Create TypeScript package with proper types
 3. Publish as `@royea/hebrew-date`
 
-**Target Users:** Heroes-Hadera, ftable, chicle, 90soccer, any Hebrew project
+**Target Users:** Heroes-Hadera, ftable, chicle, 9soccer, any Hebrew project
 
 ---
 

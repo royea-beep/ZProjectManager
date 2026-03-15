@@ -90,7 +90,7 @@ Do-next execution: NEXT_STEPS priority list, Heroes deploy checklist, PostPilot�
 # Session log (continued 2) — 2026-03-08
 
 ## Summary
-Manager run: Wingman crash fix + build 8 to TestFlight; 90soccer next steps, cert scripts, Android workflow fix, Hebrew-first; PostPilot + Wingman Hebrew-first; ZPM Hebrew model + audit + NEXT_5; release checklists in 3 projects; all repos pushed.
+Manager run: Wingman crash fix + build 8 to TestFlight; 9soccer next steps, cert scripts, Android workflow fix, Hebrew-first; PostPilot + Wingman Hebrew-first; ZPM Hebrew model + audit + NEXT_5; release checklists in 3 projects; all repos pushed.
 
 ## What was coded and committed
 
@@ -110,7 +110,7 @@ Manager run: Wingman crash fix + build 8 to TestFlight; 90soccer next steps, cer
 - **docs/RELEASE_CHECKLIST.md** — Export compliance, add testers, smoke-test; done items listed.
 - **EAS:** Build 8 submitted to TestFlight via `eas submit --latest --platform ios --profile production`. All above committed and pushed to origin/master.
 
-### 90soccer
+### 9soccer
 - **next.config.ts** — `output: 'export'` for static site in `out/` (Capacitor webDir).
 - **.gitignore** — .env, .env.local, *.mobileprovision, *.cer, certs/, *.key, *.csr.
 - **docs/DEPLOY.md** — Build, web deploy, env vars, iOS/Android workflows, team 3K9KJNGL9U, cert troubleshooting, quick links + CLI (Apple, GitHub secrets, gh commands).
@@ -138,18 +138,18 @@ Manager run: Wingman crash fix + build 8 to TestFlight; 90soccer next steps, cer
 
 ### ZProjectManager
 - **docs/HEBREW_FIRST_MODEL.md** — Chicle pattern: he default, LANGS + TX, storage + ?lang=, RTL; checklist; React/RN snippet.
-- **docs/DEPLOYING_PLATFORMS_LANGUAGE_AUDIT.md** — Table: chicle, ftable, Heroes, ExplainIt, PostPilot, Wingman, 90soccer, KeyDrop, preprompt; he default? i18n? gap.
-- **docs/NEXT_5_ACTIONS.md** — 5 user actions: 90soccer cert, Wingman testers, smoke-test, push commits, 90soccer web deploy.
-- **MEMORY.md** — Updated: Wingman build 8 + Sentry; 90soccer cert blocker + content pipeline + Android; PostPilot–ftable unchanged.
+- **docs/DEPLOYING_PLATFORMS_LANGUAGE_AUDIT.md** — Table: chicle, ftable, Heroes, ExplainIt, PostPilot, Wingman, 9soccer, KeyDrop, preprompt; he default? i18n? gap.
+- **docs/NEXT_5_ACTIONS.md** — 5 user actions: 9soccer cert, Wingman testers, smoke-test, push commits, 9soccer web deploy.
+- **MEMORY.md** — Updated: Wingman build 8 + Sentry; 9soccer cert blocker + content pipeline + Android; PostPilot–ftable unchanged.
 - **.cursor/rules/agent-workflow.mdc** — Prefer subagents; supervisor model; user steps: give CLI/link/API and persist in project docs.
-- **SEED_DATA.sql** — 90soccer project row + launch commands (Dev Server, Open in VS Code, Content Pipeline).
+- **SEED_DATA.sql** — 9soccer project row + launch commands (Dev Server, Open in VS Code, Content Pipeline).
 - All committed and pushed to origin/master.
 
 ## Pushes performed
 - Wingman: master → origin/master (multiple commits: he-first, Sentry, docs, RELEASE_CHECKLIST).
 - PostPilot: main → origin/main (he-first, RELEASE_CHECKLIST, .env.example).
-- 90soccer: master → main (ios workflow, DEPLOY, scripts, he-first, DO_THIS_FOR_TESTFLIGHT, build-p12 env var, RELEASE_CHECKLIST).
+- 9soccer: master → main (ios workflow, DEPLOY, scripts, he-first, DO_THIS_FOR_TESTFLIGHT, build-p12 env var, RELEASE_CHECKLIST).
 - ZProjectManager: master → origin/master (Hebrew model, audit, NEXT_5, MEMORY).
 
 ## What could not be coded (user-only)
-- 90soccer iOS TestFlight: Apple Distribution certificate must be created by uploading request.csr at developer.apple.com (no API; requires Apple ID). The .cer downloaded then combines with certs/private.key via scripts/build-p12-and-secret.ps1; script and DO_THIS_FOR_TESTFLIGHT.txt document the single flow.
+- 9soccer iOS TestFlight: Apple Distribution certificate must be created by uploading request.csr at developer.apple.com (no API; requires Apple ID). The .cer downloaded then combines with certs/private.key via scripts/build-p12-and-secret.ps1; script and DO_THIS_FOR_TESTFLIGHT.txt document the single flow.

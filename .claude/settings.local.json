@@ -83,7 +83,13 @@
       "Bash(do echo:*)",
       "Bash(for proj in Heroes-Hadera MegaPromptGPT chicle clubgg crypto-arb-bot cryptowhale ftable-hands letsmakebillions mypoly)",
       "Read(//c/Projects/**)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(xxd:*)",
+      "Bash(railway deployments:*)",
+      "Bash(railway deployment:*)",
+      "Bash(railway run:*)",
+      "Bash(echo Check $i: $result webhook log entries:*)",
+      "WebFetch(domain:docs.lemonsqueezy.com)"
     ]
   }
 }

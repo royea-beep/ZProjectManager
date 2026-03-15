@@ -97,7 +97,7 @@
 |---------|-----------|
 | **TokenWise** | Published, no revenue model. Keep free, grow adoption first. |
 | **Wingman** | Ambitious but needs months of work. TestFlight active but far from monetization. |
-| **90soccer** | Fake leaderboard, 1 challenge. Needs content pipeline. |
+| **9soccer** | Fake leaderboard, 1 challenge. Needs content pipeline. |
 | **ftable** | Production, has users. Maintain, don't invest. |
 | **All libraries** | Infrastructure value, not direct revenue. |
 | **Crypto projects** | Working but not monetizable (personal trading tools). |
