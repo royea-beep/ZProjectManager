@@ -6,7 +6,7 @@ import { launchProjectCommand, launchTerminalCommand, openVSCode } from './launc
 import { processIdea, executeIdeaActions } from './idea-engine';
 import { IPC_CHANNELS, DESIGN_DIMENSIONS, WEB_RELEVANT_TYPES } from '../shared/constants';
 import { isTokenWiseAvailable, getTokenWiseOverview, getProjectCost } from './tokenwise-reader';
-import { detectSessionFromGit, getProjectGitStatus, calculateAutoHealth } from './session-intelligence';
+import { detectSessionFromGit, getProjectGitStatus, calculateAutoHealth, fetchRecentCommits } from './session-intelligence';
 import { detectPatterns } from './pattern-detector';
 import { runBackup, getBackupList, getLastBackupTime, restoreBackup, startAutoBackup, getBackupDir_public } from './auto-backup';
 import { generateWeeklyDigest } from './digest';
@@ -853,6 +853,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.GIT_STATUS, (_e, repoPath: string) => {
     return getProjectGitStatus(repoPath);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.RECENT_COMMITS, (_e, repoPath: string, limit?: number) => {
+    return fetchRecentCommits(repoPath, limit || 10);
   });
 
   ipcMain.handle(IPC_CHANNELS.AUTO_HEALTH, async (_e, projectId: number) => {

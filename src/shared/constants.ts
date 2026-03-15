@@ -229,6 +229,7 @@ export const IPC_CHANNELS = {
   DETECT_SESSION: 'session:detect',
   GIT_STATUS: 'session:gitStatus',
   AUTO_HEALTH: 'session:autoHealth',
+  RECENT_COMMITS: 'session:recentCommits',
   // Audit Trail
   GET_AUDIT_LOG: 'audit:getAll',
   GET_PROJECT_AUDIT_LOG: 'audit:getProject',

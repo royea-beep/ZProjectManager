@@ -167,6 +167,36 @@ export async function calculateAutoHealth(repoPath: string | null, data: {
   return Math.max(0, Math.min(100, score));
 }
 
+/**
+ * Fetch recent commits for a project (lightweight — just last N commits)
+ */
+export async function fetchRecentCommits(repoPath: string, limit = 10): Promise<
+  { hash: string; message: string; date: string; author: string }[]
+> {
+  if (!fs.existsSync(path.join(repoPath, '.git'))) return [];
+
+  try {
+    const log = await gitSafe(
+      ['log', `-${limit}`, '--pretty=format:%h|||%s|||%ai|||%an', '--no-merges'],
+      repoPath,
+    );
+    return log
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [hash, message, date, author] = line.split('|||');
+        return {
+          hash: hash?.trim() || '',
+          message: message?.trim() || '',
+          date: date?.trim() || '',
+          author: author?.trim() || '',
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
 // ---- Helpers ----
 
 async function gitSafe(args: string[], cwd: string): Promise<string> {

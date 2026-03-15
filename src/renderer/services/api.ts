@@ -164,6 +164,7 @@ export interface GitStatus {
 export const detectSession = (repoPath: string, sinceDate?: string) => invoke(IPC_CHANNELS.DETECT_SESSION, repoPath, sinceDate) as Promise<DetectedSession | null>;
 export const getGitStatus = (repoPath: string) => invoke(IPC_CHANNELS.GIT_STATUS, repoPath) as Promise<GitStatus | null>;
 export const autoHealth = (projectId: number) => invoke(IPC_CHANNELS.AUTO_HEALTH, projectId) as Promise<number | null>;
+export const getRecentCommits = (repoPath: string, limit?: number) => invoke(IPC_CHANNELS.RECENT_COMMITS, repoPath, limit) as Promise<{ hash: string; message: string; date: string; author: string }[]>;
 
 // Audit Trail
 export interface AuditEntry {

@@ -29,7 +29,7 @@ const ALLOWED_CHANNELS = new Set([
   // TokenWise
   'tokenwise:available', 'tokenwise:overview', 'tokenwise:projectCost',
   // Session Intelligence
-  'session:detect', 'session:gitStatus', 'session:autoHealth',
+  'session:detect', 'session:gitStatus', 'session:autoHealth', 'session:recentCommits',
   // Audit Trail
   'audit:getAll', 'audit:getProject',
   // Global Search

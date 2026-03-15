@@ -389,6 +389,18 @@ export async function initDatabase(): Promise<void> {
     }
   }
 
+  // Audit log TTL: clean entries older than 90 days
+  try {
+    const before = db.exec("SELECT COUNT(*) as c FROM audit_log WHERE created_at < datetime('now', '-90 days')");
+    const count = (before[0]?.values?.[0]?.[0] as number) || 0;
+    if (count > 0) {
+      db.run("DELETE FROM audit_log WHERE created_at < datetime('now', '-90 days')");
+      console.log(`[database] Cleaned ${count} audit log entries older than 90 days`);
+    }
+  } catch (e) {
+    console.error('[database] Audit log cleanup failed:', e);
+  }
+
   saveDbImmediate();
 }
 

@@ -192,16 +192,18 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: (data:
   const [fieldValue, setFieldValue] = useState('');
   const [showHealthSlider, setShowHealthSlider] = useState(false);
   const [gitStatus, setGitStatus] = useState<{ branch: string; uncommitted: number; untracked: number; ahead: number; behind: number } | null>(null);
+  const [recentCommits, setRecentCommits] = useState<{ hash: string; message: string; date: string; author: string }[]>([]);
   const [healthRecalculated, setHealthRecalculated] = useState(false);
 
   React.useEffect(() => {
     if (!editing) setForm(project);
   }, [project, editing]);
 
-  // Feature 1: Load git status on mount
+  // Feature 1: Load git status + recent commits on mount
   useEffect(() => {
     if (project.repo_path) {
       api.getGitStatus(project.repo_path).then(status => setGitStatus(status)).catch(() => {});
+      api.getRecentCommits(project.repo_path, 10).then(commits => setRecentCommits(commits)).catch(() => {});
     }
   }, [project.repo_path]);
 
@@ -353,6 +355,22 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: (data:
             )}
           </div>
         )}
+        {/* Recent Commits */}
+        {recentCommits.length > 0 && (
+          <div>
+            <label className="text-xs text-dark-muted block mb-1.5">Recent Commits</label>
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {recentCommits.map((c) => (
+                <div key={c.hash} className="flex items-start gap-2 text-xs">
+                  <code className="text-accent-blue font-mono shrink-0">{c.hash}</code>
+                  <span className="text-dark-text truncate flex-1" title={c.message}>{c.message}</span>
+                  <span className="text-dark-muted shrink-0">{c.date.split(' ')[0]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <div className="flex items-center gap-2 mb-1">
             <label className="text-xs text-dark-muted">Health Score</label>
