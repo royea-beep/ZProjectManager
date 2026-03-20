@@ -7,7 +7,7 @@
 ## Active Projects Status
 
 ### Caps Poker (NEW — added 2026-03-20)
-- v1.9.3 build #104 | TestFlight + caps.ftable.co.il (Vercel) | 115/115 tests
+- v1.9.3 | Code b104 | EAS #117 (TestFlight) | caps.ftable.co.il (Vercel) | 115/115 tests
 - Features: 4 boards Omaha, vs bot, local TCP multiplayer, Supabase Realtime online, WhatsApp bot (Hebrew, image, audio), visual themes Classic/Five-O, orientation picker, leaderboard
 - Pending manual: Twilio webhook URL (30s) + Google OAuth provider in Supabase dashboard
 - Stack: React Native + Expo SDK 55 + TypeScript + Zustand + Supabase + Vercel

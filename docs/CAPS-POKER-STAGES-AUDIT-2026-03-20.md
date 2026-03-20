@@ -1,5 +1,5 @@
 # Caps Poker — Project Stages Audit
-**Date:** 2026-03-20 | **Version:** v1.9.3 build #104 | **Auditor:** Claude Sonnet 4.6
+**Date:** 2026-03-20 | **Version:** v1.9.3 | Code b104 | EAS #117 | **Auditor:** Claude Sonnet 4.6
 
 ---
 
