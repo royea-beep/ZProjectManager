@@ -32,7 +32,9 @@ ALWAYS: SELECT MAX(id) FROM solo_challenges before insert
 2. Never cancel-in-progress on distribute workflow
 3. Use PyJWT[crypto] not bare PyJWT (ES256 needs cryptography)
 4. Use python3 -m venv before pip (macOS 15 PEP 668)
-5. ASC API: no filter[processingState]=VALID (deprecated 2025)
+5. ASC API: no filter[processingState]=VALID (deprecated 2025) → 400 error
+6. ASC API: use /v1/builds?filter[app]={APP_ID} — NOT /v1/apps/{id}/builds
+   Relationship endpoint does not support sort params → 400 PARAMETER_ERROR
    → fetch builds without filter, check processingState attribute in response
 6. Always verify Bundle ID matches ASC before first upload
 
@@ -46,3 +48,9 @@ ALWAYS: SELECT MAX(id) FROM solo_challenges before insert
 - Fastlane:    C:/Projects/90soccer/fastlane/
 - ASC tools:   C:/Projects/90soccer/scripts/query-asc.js
                C:/Projects/90soccer/scripts/asc-status.sh
+
+## FINAL CI FIX (V116 — CONFIRMED WORKING):
+7. ASC API endpoint: GET /v1/builds?filter[app]={APP_ID}&sort=-uploadedDate&limit=5
+   NOT /v1/apps/{id}/builds (relationship endpoint = no sort/filter support → 400)
+   This was root cause of ALL PARAMETER_ERROR 400s since V111.
+   Build 382 distributed to TestFlight "Friends" group on attempt 1/45 ✅
