@@ -89,7 +89,27 @@
       "Bash(railway deployment:*)",
       "Bash(railway run:*)",
       "Bash(echo Check $i: $result webhook log entries:*)",
-      "WebFetch(domain:docs.lemonsqueezy.com)"
+      "WebFetch(domain:docs.lemonsqueezy.com)",
+      "Bash(C:/Windows/System32/curl.exe -s -o /dev/null -w \"%{http_code}\" --max-time 10 \"https://z.ftable.co.il\")",
+      "Bash(C:/Windows/System32/curl.exe -s -o /dev/null -w \"%{http_code}\" --max-time 10 \"https://zpm-proxy.royearguan.workers.dev\")",
+      "Bash(bc)",
+      "Bash(head -3 grep -n \"box-shadow: 0 0 6px rgba\\(166,227,161\" /c/Users/royea/Desktop/index_merged_work.html)",
+      "Bash(head -3 grep -n \"showVoiceState\\\\|voiceRecordingState\\\\|voiceReviewState\" /c/Users/royea/Desktop/index_merged_work.html)",
+      "Bash(head -5 grep -n \"linear-gradient\\(135deg,#89b4fa,#cba6f7\\).*border-radius:20px\" /c/Users/royea/Desktop/index_merged_work.html)",
+      "Bash(head -3 grep -n \"logPhaseCompletion\\\\|exportPhaseLog\\\\|getMegaPrompt\" /c/Users/royea/Desktop/index_merged_work.html)",
+      "Bash(py -3.11 -X utf8 load_all_logs.py)",
+      "Bash(cmd.exe /c \"schtasks /create /tn \\\\\"11STEPS2DONE Sync\\\\\" /tr \\\\\"C:\\\\\\\\Users\\\\\\\\royea\\\\\\\\Desktop\\\\\\\\11STEPS2DONE\\\\\\\\auto_sync.bat\\\\\" /sc daily /st 08:00 /f\" 2>&1)",
+      "Bash(powershell.exe -NoProfile -Command \"schtasks /create /tn '11STEPS2DONE Sync' /tr 'C:\\\\\\\\Users\\\\\\\\royea\\\\\\\\Desktop\\\\\\\\11STEPS2DONE\\\\\\\\auto_sync.bat' /sc daily /st 08:00 /f\" 2>&1)",
+      "Bash(powershell.exe -NoProfile -Command \"schtasks /query /tn '11STEPS2DONE Sync' /fo LIST\" 2>&1)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__get_project_url",
+      "mcp__claude_ai_Supabase__get_publishable_keys",
+      "Bash(cp:*)",
+      "Bash(for proj:*)",
+      "Read(//c/Projects/$proj/**)",
+      "Bash(for dir:*)",
+      "Bash(py:*)"
     ]
   }
 }
