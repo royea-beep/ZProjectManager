@@ -177,6 +177,21 @@
 | Loyalty Tiers | chicle | `index.html` (inline) | 6 loyalty levels based on spend | ftable player tiers |
 | Service Templates | KeyDrop | `src/lib/templates.ts` | 20+ pre-built API service templates (bilingual) | Any credential collection |
 
+### 2K. Mobile Game Infrastructure (Caps Poker)
+
+| Library | Source Project | File(s) | What It Does | Can Use In |
+|---------|--------------|---------|-------------|------------|
+| rv() Responsive Helper | Caps Poker | `constants/deviceBreakpoints.ts` | Breakpoint-aware value picker (mobileWeb/tablet/desktop/native) from useWindowDimensions() | Any Expo web+native app |
+| Visual Theme Token System | Caps Poker | `constants/visualThemes.ts` | Full design token system (colors, radii) with `getTheme(null)` safe fallback | Any Expo multi-theme app |
+| Zustand + AsyncStorage Persist | Caps Poker | `store/gameStore.ts` | Partial persistence pattern — `partialize` to exclude transient state | Any Expo app with persistent settings |
+| WhatsApp Bot (Twilio+Claude+Whisper) | Caps Poker | `supabase/functions/whatsapp-bot-handler/` | Hebrew AI, image vision, audio transcription, GitHub dispatch, multi-project routing | Any project needing AI support channel |
+| EAS Build + GitHub Actions CI | Caps Poker | `.github/workflows/claude-fix.yml` | Auto TestFlight on push, `credentialsSource: remote` | Any Expo iOS app |
+| BugReporter Component | Caps Poker | `components/BugReporter.tsx` | Shake/FAB → screenshot → Supabase bug_reports | Any Expo app |
+| Pre-Calculation Pattern | Caps Poker | `app/game.tsx` | Run heavy compute during UX delay → zero-wait navigation | Any app with countdowns/loading screens |
+| expo-screen-orientation Lock | Caps Poker | `app/_layout.tsx` | Lazy-load orientation module, lock per user preference | Any Expo app with orientation control |
+| First-Launch Onboarding Flow | Caps Poker | `app/_layout.tsx` + `app/theme-pick.tsx` | Null-gated multi-step onboarding via router.replace | Any Expo app with first-launch setup |
+| Reanimated Glow/Pulse Animation | Caps Poker | `components/Card.tsx` | Spring-in border glow, scale+translateY on highlight | Any card/item selection UI |
+
 ---
 
 ## 3. CROSS-PROJECT OPPORTUNITIES
