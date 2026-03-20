@@ -1,0 +1,134 @@
+# =============================================================================
+# iOS Distribute to TestFlight — Add processed build to all beta groups
+# =============================================================================
+#
+# Triggered automatically when ios-testflight.yml completes successfully.
+# Lives in a SEPARATE workflow so it can NEVER be cancelled by a new push
+# that cancels the build workflow.
+#
+# Required GitHub Actions Secrets (same as ios-testflight.yml):
+#   ASC_API_KEY_ID         — App Store Connect API key ID
+#   ASC_API_KEY_ISSUER_ID  — App Store Connect API key issuer ID
+#   ASC_API_KEY_P8         — App Store Connect API key (.p8 contents)
+#
+# =============================================================================
+
+name: iOS Distribute to TestFlight
+
+on:
+  workflow_run:
+    workflows: ["iOS TestFlight"]
+    types: [completed]
+
+jobs:
+  distribute:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Install Python dependencies
+        run: |
+          python3 -m venv /tmp/asc-venv
+          /tmp/asc-venv/bin/pip install "PyJWT[crypto]" requests
+
+      - name: Add build to TestFlight groups
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_API_KEY_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          APP_ID: "6760544822"
+        run: |
+          /tmp/asc-venv/bin/python3 << 'PYEOF'
+          import jwt
+          import time
+          import requests
+          import os
+          import sys
+
+          KEY_ID    = os.environ["ASC_KEY_ID"]
+          ISSUER_ID = os.environ["ASC_ISSUER_ID"]
+          KEY_P8    = os.environ["ASC_KEY_P8"]
+          APP_ID    = os.environ["APP_ID"]
+          BASE_URL  = "https://api.appstoreconnect.apple.com/v1"
+
+          def make_token():
+              now = int(time.time())
+              payload = {
+                  "iss": ISSUER_ID,
+                  "iat": now,
+                  "exp": now + 1200,
+                  "aud": "appstoreconnect-v1",
+              }
+              return jwt.encode(payload, KEY_P8, algorithm="ES256", headers={"kid": KEY_ID})
+
+          def headers():
+              return {"Authorization": f"Bearer {make_token()}", "Content-Type": "application/json"}
+
+          # Wait for the build to become VALID (up to 45 min)
+          # NOTE: filter[processingState] was removed — it caused 400 errors in 2025+ ASC API.
+          # Instead we fetch the latest build and check its processingState attribute.
+          print("Waiting for build to become VALID in ASC...")
+          build_id = None
+          for attempt in range(45):
+              time.sleep(60)
+              r = requests.get(
+                  f"{BASE_URL}/apps/{APP_ID}/builds",
+                  headers=headers(),
+                  params={"sort": "-uploadedDate", "limit": 5},
+              )
+              print(f"Attempt {attempt+1}/45 — API status={r.status_code}")
+              if r.status_code == 200:
+                  data = r.json().get("data", [])
+                  for build in data:
+                      state = build["attributes"].get("processingState", "")
+                      version = build["attributes"].get("version", "?")
+                      print(f"  Build version={version} processingState={state}")
+                      if state == "VALID":
+                          build_id = build["id"]
+                          print(f"Build VALID — id={build_id}, version={version}")
+                          break
+                      elif state == "INVALID":
+                          print(f"::error::Build is INVALID (rejected by Apple). Check bundle ID, provisioning profile, and entitlements.")
+                          sys.exit(1)
+                  if build_id:
+                      break
+              elif r.status_code in (401, 403):
+                  print(f"::error::ASC API auth failed ({r.status_code}): {r.text[:300]}")
+                  sys.exit(1)
+              else:
+                  print(f"  Response body: {r.text[:200]}")
+
+          if not build_id:
+              print("::warning::Build did not become VALID within 45 minutes. Add to groups manually in ASC.")
+              sys.exit(0)
+
+          # Fetch all beta groups
+          r = requests.get(
+              f"{BASE_URL}/apps/{APP_ID}/betaGroups",
+              headers=headers(),
+              params={"limit": 50},
+          )
+          r.raise_for_status()
+          groups = r.json().get("data", [])
+          if not groups:
+              print("::warning::No beta groups found for app.")
+              sys.exit(0)
+
+          print(f"Found {len(groups)} beta group(s):")
+          for g in groups:
+              gid   = g["id"]
+              gname = g["attributes"].get("name", gid)
+              print(f"  Adding build to group: {gname} ({gid})")
+              resp = requests.post(
+                  f"{BASE_URL}/betaGroups/{gid}/relationships/builds",
+                  headers=headers(),
+                  json={"data": [{"type": "builds", "id": build_id}]},
+              )
+              if resp.status_code in (200, 201, 204):
+                  print(f"    Added to {gname}")
+              else:
+                  print(f"    Failed ({resp.status_code}): {resp.text[:200]}")
+
+          print("TestFlight distribution complete.")
+          PYEOF
