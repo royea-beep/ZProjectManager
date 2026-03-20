@@ -1,12 +1,38 @@
-# Session memory (2026-03-08)
+# Session memory (2026-03-20)
 
-**User preference (always):** When the user must do something, make it the **simplest possible**. Prefer in order: **1) CLI** (one command or copy-paste) → **2) API key / secret** (single value to paste) → **3) Direct link + short step-by-step**. Save the chosen form in project docs so it’s in “hard memory” for next time.
+**User preference (always):** Simplest possible manual steps: 1) CLI → 2) API key → 3) Direct link + steps.
 
-**Last session:** Do-next execution, PostPilot–ftable caption API, Heroes deploy, batch commits, learnings + migration.
+**Last session:** Caps Poker b104 — visual theme system Classic/Five-O, orientation picker, Five-O vertical reveal, confetti, WhatsApp bot fully live.
 
-- **Wingman:** TestFlight build **1.0.0 (8)** submitted; Sentry mobile re-enabled. Next: App Store Connect (add testers, export compliance), smoke-test. See docs/TESTFLIGHT.md, docs/SENTRY_MOBILE.md. Delete account implemented; subscription verify is stub — see docs/SUBSCRIPTION.md.
-- **9soccer:** iOS TestFlight blocked until DISTRIBUTION_P12_BASE64 is set (use certs/request.csr → Apple → .cer → scripts/build-p12-and-secret.ps1). Content pipeline: scout + questions OK; cutter fails on Windows (path). Android: `gh workflow run "Android Build"`.
-- **PostPilot–ftable:** `POST /api/ftable/caption` live; set `POSTPILOT_FTABLE_API_KEY` in host, same as `POSTPILOT_API_KEY` in ftable Edge secrets for AI captions in auto-post-social.
-- **Heroes-Hadera:** Deployed 57 files to https://heroes.ftable.co.il via Git Bash + ftable .env `FTP_PASS`. See DEPLOY_CHECKLIST.md.
-- **Learnings:** Stored in ZPM DB via migration 6 (run on next app open). See SESSION_LOG_2026-03-08.md for full log and learnings text.
-- **letsmakebillions:** Only untracked data/cache; don’t commit `private_key.pem` or state JSONs.
+## Active Projects Status
+
+### Caps Poker (NEW — added 2026-03-20)
+- v1.9.3 build #104 | TestFlight + caps.ftable.co.il (Vercel) | 115/115 tests
+- Features: 4 boards Omaha, vs bot, local TCP multiplayer, Supabase Realtime online, WhatsApp bot (Hebrew, image, audio), visual themes Classic/Five-O, orientation picker, leaderboard
+- Pending manual: Twilio webhook URL (30s) + Google OAuth provider in Supabase dashboard
+- Stack: React Native + Expo SDK 55 + TypeScript + Zustand + Supabase + Vercel
+
+### Wingman
+- React Native dating app, last build TestFlight 1.0.0 (8)
+- Status: pre-launch, needs testing
+
+### ftable
+- Israeli poker portal LIVE at ftable.co.il
+- Task 1 (in_progress/critical): Fix auth guards on admin pages, clean dead code
+
+### Heroes-Hadera
+- Deployed to heroes.ftable.co.il
+- Task 2 (in_progress/critical): Complete admin tournament management
+
+### KeyDrop, PostPilot, ExplainIt
+- All LIVE on Vercel with LemonSqueezy billing
+
+### Trading bots (cryptowhale, letsmakebillions)
+- LIVE on Railway
+
+## WhatsApp Bot
+- Edge Function v15 LIVE on Supabase gxrpunvhjcrzqnitbqah
+- Routes to 8 repos: caps-poker, wingman, keydrop, analyzer, explainit, postpilot, ftable, letsmakebillions
+- Hebrew + image (Claude Vision) + audio (OpenAI Whisper)
+- OPENAI_API_KEY confirmed set
+- Twilio webhook URL: https://gxrpunvhjcrzqnitbqah.supabase.co/functions/v1/whatsapp-bot-handler

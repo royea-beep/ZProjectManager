@@ -1,6 +1,6 @@
 # Roy's Project Empire — Master Reference
 
-> Last updated: 2026-03-07 | 17 projects, 3 ecosystems
+> Last updated: 2026-03-20 | 19 projects, 4 ecosystems
 > This document is the single source of truth for all projects, reusable code, and cross-project opportunities.
 
 ---
@@ -14,15 +14,21 @@
 | **ftable** | Israeli poker portal — tournaments, leaderboards, FTC coins, news, clubs directory, reporters | LIVE | Vanilla JS + Supabase + cPanel | ftable.co.il |
 | **ftable-hands** | Video highlight detection — OCR hand scanning, clip cutting, player profiles, YouTube upload | Working (local) | Python + OpenCV + ffmpeg | — |
 | **clubgg** | Financial settlement for 2-partner poker club (88 weeks, W25-W113) | Done (analysis) | Python + SQLite + Excel | — |
-| **Heroes-Hadera** | Tournament registration & league system for Heroes poker club in Hadera | MVP (not deployed) | Vanilla JS + Supabase | — |
-| **ExplainIt** | Transform websites into explainer videos/PDFs (includes ClubGG templates) | LIVE | Next.js + Playwright + PDFKit | explainit-one.vercel.app |
+| **Heroes-Hadera** | Tournament registration & league system for Heroes poker club in Hadera | LIVE | Vanilla JS + Supabase | heroes.ftable.co.il |
+| **ExplainIt** | Transform websites into explainer videos/PDFs (includes ClubGG templates) | LIVE | Next.js + Playwright + PDFKit + LemonSqueezy | explainit-one.vercel.app |
+
+### Mobile Games (1 project)
+
+| Project | One-Liner | Status | Stack | URL |
+|---------|-----------|--------|-------|-----|
+| **Caps Poker** | React Native Omaha poker — 4 boards, bot, local + internet multiplayer, WhatsApp bot, visual themes | LIVE | React Native + Expo SDK 55 + TypeScript + Zustand + Supabase | caps.ftable.co.il |
 
 ### AI / SaaS Tools (6 projects)
 
 | Project | One-Liner | Status | Stack | URL |
 |---------|-----------|--------|-------|-----|
-| **PostPilot** | AI social media manager — upload content, get AI captions, publish to platforms | LIVE | Next.js + Prisma + Claude API | postpilot-app-nine.vercel.app |
-| **KeyDrop** | Secure credential collection — clients submit API keys via encrypted links | Ready (not deployed) | Next.js + Prisma + AES-256 | — |
+| **PostPilot** | AI social media manager — upload content, get AI captions, publish to platforms | LIVE | Next.js + Prisma + Claude API + LemonSqueezy | postpilot.ftable.co.il |
+| **KeyDrop** | Secure credential collection — clients submit API keys via encrypted links | LIVE | Next.js + Prisma + AES-256 + LemonSqueezy | 1-2clicks.vercel.app |
 | **TokenWise** | Claude Code cost tracker — hooks into sessions, logs tokens & USD cost | Working (local CLI) | Node.js + sql.js | — |
 | **MegaPromptGPT** | CLI prompt expander — short prompt to mega prompt with checkpoints | Working (local CLI) | Python (no deps) | — |
 | **preprompt-web** | Web prompt builder with AI suggestions, profiles, versioning, knowledge base | MVP (local) | Next.js + OpenAI API | — |
@@ -218,7 +224,7 @@
 | Vanilla JS + HTML | ftable, Heroes, chicle, clubgg (reports) |
 | Next.js (React) | PostPilot, KeyDrop, ExplainIt, preprompt-web |
 | React (Electron) | ZProjectManager |
-| React Native (Expo) | Wingman |
+| React Native (Expo) | Wingman, **Caps Poker** |
 
 ### Backend / Runtime
 | Stack | Projects |
@@ -235,8 +241,8 @@
 ### AI Integration
 | Service | Projects |
 |---------|----------|
-| Claude API (Anthropic) | PostPilot, Wingman, cryptowhale, letsmakebillions |
-| OpenAI API | preprompt-web |
+| Claude API (Anthropic) | PostPilot, Wingman, cryptowhale, letsmakebillions, **Caps Poker (WhatsApp bot)** |
+| OpenAI API (Whisper) | preprompt-web, **Caps Poker (WhatsApp audio transcription)** |
 | No AI | ftable, Heroes, KeyDrop, TokenWise, chicle, clubgg, ftable-hands, crypto-arb-bot, mypoly |
 
 ### Deployment
@@ -252,16 +258,19 @@
 
 ## 5. DEPLOYMENT MAP
 
-### LIVE (5 projects)
+### LIVE (9 projects)
 - ftable.co.il — cPanel
+- heroes.ftable.co.il — cPanel
+- caps.ftable.co.il — Vercel (React Native web + iOS TestFlight)
 - explainit-one.vercel.app — Vercel
-- postpilot-app-nine.vercel.app — Vercel
+- postpilot.ftable.co.il — Vercel
+- 1-2clicks.vercel.app (KeyDrop) — Vercel
+- analyzer.ftable.co.il — Vercel
 - cryptowhale — Railway
 - letsmakebillions — Railway
 
-### READY TO DEPLOY (2 projects)
-- KeyDrop — needs Vercel + Neon setup
-- Heroes-Hadera — needs cPanel deploy + Supabase schema
+### READY TO DEPLOY (0 projects)
+- All previously pending projects are now live
 
 ### LOCAL TOOLS (6 projects)
 - ZProjectManager — Electron desktop app
