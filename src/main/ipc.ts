@@ -10,7 +10,7 @@ import { detectSessionFromGit, getProjectGitStatus, calculateAutoHealth, fetchRe
 import { detectPatterns } from './pattern-detector';
 import { runBackup, getBackupList, getLastBackupTime, restoreBackup, startAutoBackup, getBackupDir_public } from './auto-backup';
 import { generateWeeklyDigest } from './digest';
-import { generateMegaPrompt } from './prompt-engine';
+import { generateMegaPrompt, getRecommendedActions } from './prompt-engine';
 import { ACTION_GROUPS, ACTION_LABELS } from '../shared/prompt-templates';
 import type { PromptAction } from '../shared/prompt-templates';
 import { SITUATIONAL_PROMPTS, getSituationalPrompt } from './situational-prompts';
@@ -1260,6 +1260,25 @@ export function registerIpcHandlers(): void {
   });
 
   // Prompt usage logging
+  ipcMain.handle('prompts:get-recommended', (_e, project: Parameters<typeof getRecommendedActions>[0]) => {
+    return getRecommendedActions(project);
+  });
+
+  ipcMain.handle('prompts:get-stats', (_e, filters?: { promptId?: string; projectId?: number }) => {
+    let query = `
+      SELECT prompt_id, prompt_type, COUNT(*) as total_uses,
+        SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) as successes,
+        SUM(CASE WHEN outcome = 'failure' THEN 1 ELSE 0 END) as failures,
+        ROUND(100.0 * SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) / COUNT(*), 0) as success_rate
+      FROM prompt_usage WHERE outcome != 'unknown'
+    `;
+    const params: (string | number)[] = [];
+    if (filters?.promptId) { query += ` AND prompt_id = ?`; params.push(filters.promptId); }
+    if (filters?.projectId) { query += ` AND project_id = ?`; params.push(filters.projectId); }
+    query += ` GROUP BY prompt_id, prompt_type ORDER BY total_uses DESC`;
+    return getAll(query, params);
+  });
+
   ipcMain.handle('prompts:log-usage', (_e, args: { promptType: string; promptId: string; projectId?: number }) => {
     runInsert(
       'INSERT INTO prompt_usage (prompt_type, prompt_id, project_id) VALUES (?, ?, ?)',

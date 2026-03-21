@@ -19,6 +19,7 @@ import { STATUS_LABELS, STAGE_LABELS, PRIORITY_LABELS, TASK_STATUS_LABELS, PROJE
 import type { WebsiteDesignScore } from '../../shared/types';
 import { useToast } from '../components/Toast';
 import PromptPage from './PromptPage';
+import NextStepsWidget from '../components/NextStepsWidget';
 
 const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt'];
 
@@ -403,6 +404,7 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: (data:
           <div>Last worked: {project.last_worked_at || 'Never'}</div>
           <div>Launched: {project.launched_at || 'Not yet'}</div>
         </div>
+        <NextStepsWidget context="project" project={project} />
       </div>
     );
   }

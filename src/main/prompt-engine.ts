@@ -614,3 +614,92 @@ export function generateMegaPrompt(
 
   return sections.join('\n\n');
 }
+
+// ── Prompt Scoring / Recommendations ─────────────────────────────────────────
+
+export const STAGE_RECOMMENDED_ACTIONS: Record<string, {
+  primary: PromptAction;
+  secondary: PromptAction[];
+  reason: string;
+}> = {
+  'idea':        { primary: 'scaffold-project',  secondary: ['add-database', 'setup-ci-cd'],           reason: 'Nothing built yet — scaffold first, then infrastructure' },
+  'scaffold':    { primary: 'add-auth',           secondary: ['add-database', 'add-analytics'],         reason: 'Structure exists — auth and DB are the foundation' },
+  'building':    { primary: 'add-feature',        secondary: ['fix-bugs', 'audit-codebase'],            reason: 'Active development — build features, catch bugs early' },
+  'alpha':       { primary: 'fix-bugs',           secondary: ['security-audit', 'performance-audit'],   reason: 'Core done — clean up bugs, harden before real users' },
+  'testflight':  { primary: 'fix-bugs',           secondary: ['add-analytics', 'add-feedback-widget'],  reason: 'Real users testing — listen to feedback, fix what breaks' },
+  'pre-launch':  { primary: 'launch-checklist',   secondary: ['app-store-prep', 'marketing-page'],      reason: 'Almost there — run checklist, prepare all launch assets' },
+  'live':        { primary: 'add-payments',       secondary: ['performance-audit', 'add-admin-dashboard'], reason: 'Live product — monetize, monitor, optimize' },
+  'scaling':     { primary: 'performance-audit',  secondary: ['add-subscription', 'refactor'],          reason: 'Growing — optimize for scale, deepen monetization' },
+  'maintenance': { primary: 'update-state-docs',  secondary: ['add-analytics', 'security-audit'],       reason: 'Stable — keep docs current, watch for security issues' },
+  'paused':      { primary: 'audit-codebase',     secondary: ['update-state-docs', 'refactor'],         reason: 'Resuming — audit what was built, then plan next move' },
+  'pivot':       { primary: 'audit-codebase',     secondary: ['scaffold-project', 'add-feature'],       reason: 'Changing direction — audit what to keep, rebuild what to change' },
+  // Map to existing stages in DB
+  'concept':     { primary: 'scaffold-project',   secondary: ['add-database', 'setup-ci-cd'],           reason: 'Concept stage — scaffold first to validate the idea' },
+  'research':    { primary: 'scaffold-project',   secondary: ['audit-codebase', 'add-database'],        reason: 'Research stage — start building to validate assumptions' },
+  'architecture':{ primary: 'scaffold-project',   secondary: ['add-database', 'add-auth'],              reason: 'Architecture stage — scaffold based on your design' },
+  'setup':       { primary: 'add-auth',           secondary: ['add-database', 'setup-ci-cd'],           reason: 'Setup stage — wire auth and DB before building features' },
+  'development': { primary: 'add-feature',        secondary: ['fix-bugs', 'audit-codebase'],            reason: 'Active development — build features, catch bugs early' },
+  'content_assets':{ primary: 'marketing-page',   secondary: ['app-store-prep', 'seo-audit'],           reason: 'Content stage — polish the marketing and store assets' },
+  'launch_prep': { primary: 'launch-checklist',   secondary: ['security-audit', 'performance-audit'],   reason: 'Launch prep — run the full checklist before going live' },
+  'live_optimization':{ primary: 'performance-audit', secondary: ['add-subscription', 'add-admin-dashboard'], reason: 'Live and optimizing — deepen monetization, monitor performance' },
+};
+
+export const CATEGORY_STAGE_OVERRIDES: Partial<Record<string, { primary: PromptAction; reason: string }>> = {
+  'mobile-app_testflight':  { primary: 'fix-bugs',       reason: 'Mobile on TestFlight — crash reports are #1 priority' },
+  'mobile-app_pre-launch':  { primary: 'app-store-prep', reason: 'Mobile pre-launch — screenshots and metadata block submission' },
+  'web-saas_live':          { primary: 'add-payments',   reason: 'Live SaaS with no monetization = leaving money on the table' },
+  'web-saas_live_optimization': { primary: 'add-subscription', reason: 'Live SaaS — subscription model beats one-time payments' },
+  'web-saas_building':      { primary: 'add-auth',       reason: 'SaaS without auth cannot have users' },
+  'web-saas_development':   { primary: 'add-auth',       reason: 'SaaS without auth cannot have users' },
+  'game_testflight':        { primary: 'fix-bugs',       reason: 'Game on TestFlight — gameplay bugs kill retention immediately' },
+  'mobile-app_development': { primary: 'testflight-submit', reason: 'Mobile in development — get it on TestFlight for real device testing' },
+  'ai-tool_live':           { primary: 'add-payments',   reason: 'AI tool with users = prime time to monetize' },
+  'desktop-app_live_optimization': { primary: 'add-subscription', reason: 'Desktop app live — subscription is the best monetization model' },
+};
+
+export interface RecommendedActions {
+  primary: PromptAction;
+  secondary: PromptAction[];
+  reason: string;
+  urgency: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export function getRecommendedActions(project: {
+  stage: string;
+  category: string;
+  health_score: number;
+  github_ci_status?: string | null;
+  github_open_prs?: number | null;
+  main_blocker?: string | null;
+  mrr?: number | null;
+}): RecommendedActions {
+  const overrideKey = `${project.category}_${project.stage}`;
+  const override = CATEGORY_STAGE_OVERRIDES[overrideKey];
+  const base = STAGE_RECOMMENDED_ACTIONS[project.stage] || STAGE_RECOMMENDED_ACTIONS['development'];
+  const primary = (override?.primary || base.primary) as PromptAction;
+  const reason = override?.reason || base.reason;
+
+  let urgency: 'critical' | 'high' | 'medium' | 'low' = 'medium';
+  if (project.github_ci_status === 'failing') urgency = 'critical';
+  else if (project.health_score < 40) urgency = 'critical';
+  else if (project.health_score < 60) urgency = 'high';
+  else if ((project.github_open_prs || 0) > 3) urgency = 'high';
+  else if ((project.mrr || 0) === 0 && (project.stage === 'live' || project.stage === 'live_optimization')) urgency = 'high';
+
+  // CI failing overrides everything
+  if (project.github_ci_status === 'failing') {
+    return {
+      primary: 'fix-bugs' as PromptAction,
+      secondary: [primary, base.secondary[0]] as PromptAction[],
+      reason: '🔴 CI is failing — fix the build before anything else',
+      urgency: 'critical',
+    };
+  }
+
+  return {
+    primary,
+    secondary: base.secondary as PromptAction[],
+    reason,
+    urgency,
+  };
+}

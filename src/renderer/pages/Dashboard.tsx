@@ -11,6 +11,7 @@ import { useToast } from '../components/Toast';
 import * as api from '../services/api';
 import type { Suggestion, WeeklyDigest } from '../services/api';
 import { PROJECT_TYPES } from '../../shared/constants';
+import NextStepsWidget from '../components/NextStepsWidget';
 
 const STATUS_FILTERS = ['all', 'stale', 'building', 'launched', 'paused', 'archived', 'idea', 'planning', 'testing'];
 
@@ -383,6 +384,9 @@ export default function Dashboard() {
           )}
         </div>
       )}
+
+      {/* Next 3 Steps */}
+      <NextStepsWidget context="dashboard" projects={projects} />
 
       {/* Weekly Digest */}
       {digest && <WeeklyDigestCard data={digest} />}

@@ -344,6 +344,29 @@ export interface PromptUsageEntry {
   notes: string | null;
   used_at: string;
 }
+export interface RecommendedActions {
+  primary: string;
+  secondary: string[];
+  reason: string;
+  urgency: 'critical' | 'high' | 'medium' | 'low';
+}
+export const getRecommendedActions = (project: {
+  stage: string; category: string; health_score: number;
+  github_ci_status?: string | null; github_open_prs?: number | null;
+  main_blocker?: string | null; mrr?: number | null;
+}) => invoke('prompts:get-recommended', project) as Promise<RecommendedActions>;
+
+export interface PromptStat {
+  prompt_id: string;
+  prompt_type: string;
+  total_uses: number;
+  successes: number;
+  failures: number;
+  success_rate: number;
+}
+export const getPromptStats = (filters?: { promptId?: string; projectId?: number }) =>
+  invoke('prompts:get-stats', filters) as Promise<PromptStat[]>;
+
 export const logPromptUsage = (args: { promptType: string; promptId: string; projectId?: number }) =>
   invoke('prompts:log-usage', args) as Promise<{ ok: boolean }>;
 export const updatePromptOutcome = (args: { id: string; outcome: string; notes?: string }) =>

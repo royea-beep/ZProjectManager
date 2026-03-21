@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage';
 import KanbanPage from './pages/KanbanPage';
 import SynergyPage from './pages/SynergyPage';
 import RevenuePage from './pages/RevenuePage';
+import PortfolioPage from './pages/PortfolioPage';
 import IdeaCollector from './components/IdeaCollector';
 import GlobalSearch from './components/GlobalSearch';
 import NotificationBell from './components/NotificationBell';
@@ -44,6 +45,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: '⊞' },
+  { path: '/portfolio', label: 'Portfolio', icon: '📁' },
   { path: '/kanban', label: 'Kanban', icon: '▦' },
   { path: '/revenue', label: 'Revenue', icon: '◈' },
   { path: '/learnings', label: 'Learnings', icon: '◉' },
@@ -57,13 +59,14 @@ const navItems = [
 const SHORTCUTS: { key: string; ctrl?: boolean; alt?: boolean; shift?: boolean; description: string; action: string }[] = [
   { key: 'k', ctrl: true, description: 'Global Search', action: 'search' },
   { key: '1', alt: true, description: 'Dashboard', action: 'nav:/' },
-  { key: '2', alt: true, description: 'Kanban', action: 'nav:/kanban' },
-  { key: '3', alt: true, description: 'Revenue', action: 'nav:/revenue' },
-  { key: '4', alt: true, description: 'Learnings', action: 'nav:/learnings' },
-  { key: '5', alt: true, description: 'Patterns', action: 'nav:/patterns' },
-  { key: '6', alt: true, description: 'Synergy', action: 'nav:/synergy' },
-  { key: '7', alt: true, description: 'Activity', action: 'nav:/activity' },
-  { key: '8', alt: true, description: 'Settings', action: 'nav:/settings' },
+  { key: '2', alt: true, description: 'Portfolio', action: 'nav:/portfolio' },
+  { key: '3', alt: true, description: 'Kanban', action: 'nav:/kanban' },
+  { key: '4', alt: true, description: 'Revenue', action: 'nav:/revenue' },
+  { key: '5', alt: true, description: 'Learnings', action: 'nav:/learnings' },
+  { key: '6', alt: true, description: 'Patterns', action: 'nav:/patterns' },
+  { key: '7', alt: true, description: 'Synergy', action: 'nav:/synergy' },
+  { key: '8', alt: true, description: 'Activity', action: 'nav:/activity' },
+  { key: '9', alt: true, description: 'Settings', action: 'nav:/settings' },
   { key: 'n', ctrl: true, description: 'New Project', action: 'new-project' },
   { key: '/', ctrl: false, description: 'Focus Search', action: 'search' },
 ];
@@ -252,6 +255,7 @@ export default function App() {
           <Route path="/learnings" element={<LearningsPage />} />
           <Route path="/patterns" element={<PatternsPage />} />
           <Route path="/synergy" element={<SynergyPage />} />
+          <Route path="/portfolio" element={<PortfolioPage />} />
           <Route path="/revenue" element={<RevenuePage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/settings" element={<SettingsPage />} />

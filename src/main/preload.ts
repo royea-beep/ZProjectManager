@@ -59,6 +59,7 @@ const ALLOWED_CHANNELS = new Set([
   // Prompt Engine
   'prompts:generate', 'prompts:getActions',
   'prompts:get-situations', 'prompts:generate-situational',
+  'prompts:get-recommended', 'prompts:get-stats',
   'prompts:log-usage', 'prompts:update-outcome', 'prompts:get-usage',
   // Session Logger
   'sessions:save-log', 'sessions:get-all-logs', 'sessions:analyze-patterns',
