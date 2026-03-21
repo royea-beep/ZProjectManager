@@ -25,6 +25,7 @@ import { classifyMessage } from './context-classifier';
 import { extractRequests, generateConfirmationMessage } from './request-extractor';
 import { runExpertPanel, formatPanelForPrompt } from './expert-panel-engine';
 import type { ExpertPanelResult } from './expert-panel-engine';
+import { analyzeAllProjects, analyzeProject, generateSharedUtilsRecs } from './learning-engine';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -2002,6 +2003,30 @@ ${stats.stalledProjects.slice(0, 5).map((p: any) => `- ${p.name}`).join('\n') ||
     const row = getOne('SELECT result_json FROM expert_panel_results WHERE id = ?', [panelId]) as { result_json: string } | null;
     if (!row) return null;
     try { return JSON.parse(row.result_json); } catch { return null; }
+  });
+
+  // ── Learning Engine ───────────────────────────────────────────────────────
+  ipcMain.handle('learning:analyze-all', () => {
+    const projects = getAll(
+      "SELECT name, repo_path, status FROM projects WHERE status NOT IN ('archived', 'idea')",
+      []
+    ) as Array<{ name: string; repo_path: string | null; status: string }>;
+    return analyzeAllProjects(projects);
+  });
+
+  ipcMain.handle('learning:analyze-project', (_e, projectId: number) => {
+    const project = getOne('SELECT name, repo_path FROM projects WHERE id = ?', [projectId]) as { name: string; repo_path: string | null } | null;
+    if (!project?.repo_path) return null;
+    return analyzeProject(project.name, project.repo_path);
+  });
+
+  ipcMain.handle('learning:get-shared-utils-recs', () => {
+    const projects = getAll(
+      "SELECT name, repo_path, status FROM projects WHERE status NOT IN ('archived', 'idea')",
+      []
+    ) as Array<{ name: string; repo_path: string | null; status: string }>;
+    const reports = analyzeAllProjects(projects);
+    return generateSharedUtilsRecs(reports);
   });
 
   ipcMain.handle('pipeline:enhance-prompt', (_e, args: { prompt: string; phase: string }) => {

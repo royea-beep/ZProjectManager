@@ -96,6 +96,8 @@ const ALLOWED_CHANNELS = new Set([
   'tasks:assign', 'projects:inferStatus',
   // Expert Panel
   'prompts:run-expert-panel', 'prompts:get-expert-panels', 'prompts:get-expert-panel',
+  // Learning Engine
+  'learning:analyze-all', 'learning:analyze-project', 'learning:get-shared-utils-recs',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

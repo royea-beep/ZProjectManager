@@ -16,6 +16,7 @@ import IntelligencePage from './pages/IntelligencePage';
 import BillingPage from './pages/BillingPage';
 import PipelinePage from './pages/PipelinePage';
 import BriefingPage from './pages/BriefingPage';
+import LearningEnginePage from './pages/LearningEnginePage';
 import IdeaCollector from './components/IdeaCollector';
 import GlobalSearch from './components/GlobalSearch';
 import NotificationBell from './components/NotificationBell';
@@ -60,6 +61,7 @@ const navItems = [
   { path: '/pipeline', label: 'Pipeline', icon: '📊' },
   { path: '/activity', label: 'Activity', icon: '◎' },
   { path: '/settings', label: 'Settings', icon: '⚙' },
+  { path: '/learning-engine', label: 'Learning', icon: '📚' },
   { path: '/synergy', label: 'Synergy', icon: '⬢' },
   { path: '/prompt-analytics', label: 'Prompt Stats', icon: '📊' },
 ];
@@ -308,6 +310,7 @@ export default function App() {
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/intelligence" element={<IntelligencePage />} />
+          <Route path="/learning-engine" element={<LearningEnginePage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/pipeline" element={<PipelinePage />} />
           <Route path="/briefing" element={<BriefingPage />} />
