@@ -109,7 +109,13 @@
       "Bash(for proj:*)",
       "Read(//c/Projects/$proj/**)",
       "Bash(for dir:*)",
-      "Bash(py:*)"
+      "Bash(py:*)",
+      "Bash(for project:*)",
+      "Bash(do)",
+      "Bash(mkdir -p \"C:/Projects/$project/docs/prompts\")",
+      "Bash(mkdir -p \"C:/Projects/$project/docs/sessions\")",
+      "Bash(mkdir -p \"C:/Projects/shared-utils/docs/workflow\")",
+      "Bash(grep -n \"NextStepsWidget\\\\|Overview\\\\|tab === ''''Overview''''\" src/renderer/pages/ProjectDetail.tsx)"
     ]
   }
 }

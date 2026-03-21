@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 11;
+const CURRENT_SCHEMA_VERSION = 12;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -301,6 +301,68 @@ function runMigrations(fromVersion: number): void {
     db.run(`CREATE INDEX IF NOT EXISTS idx_work_sessions_workspace ON work_sessions(workspace_id)`);
 
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('active_workspace_id', '0')`);
+  }
+
+  // Migration 11 -> 12: intelligence + billing tables
+  if (fromVersion < 12) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS intelligence_suggestions (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        suggestion_type TEXT NOT NULL CHECK(suggestion_type IN (
+          'action_needed','opportunity','risk','cross_project','revenue'
+        )),
+        title TEXT NOT NULL,
+        description TEXT,
+        priority INTEGER DEFAULT 5 CHECK(priority BETWEEN 1 AND 10),
+        action_prompt_id TEXT,
+        dismissed INTEGER DEFAULT 0,
+        auto_generated INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now')),
+        expires_at TEXT
+      )
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS cross_project_insights (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        insight_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        affected_project_ids TEXT,
+        severity TEXT DEFAULT 'info' CHECK(severity IN ('critical','warning','info','opportunity')),
+        auto_fix_available INTEGER DEFAULT 0,
+        dismissed INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS invoices (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        workspace_id INTEGER REFERENCES workspaces(id) ON DELETE CASCADE,
+        invoice_number TEXT NOT NULL,
+        client_name TEXT NOT NULL,
+        total_hours REAL NOT NULL,
+        billing_rate INTEGER NOT NULL,
+        total_amount INTEGER NOT NULL,
+        currency TEXT DEFAULT 'ILS',
+        status TEXT DEFAULT 'draft' CHECK(status IN ('draft','sent','paid','cancelled')),
+        line_items TEXT NOT NULL,
+        notes TEXT,
+        issued_at TEXT DEFAULT (datetime('now')),
+        due_at TEXT,
+        paid_at TEXT
+      )
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS notification_log (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT,
+        read INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
   }
 
   // Migration 9 -> 10: project_parameters + golden_prompts tables

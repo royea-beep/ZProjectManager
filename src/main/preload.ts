@@ -76,6 +76,12 @@ const ALLOWED_CHANNELS = new Set([
   'workspaces:get-all', 'workspaces:create', 'workspaces:update', 'workspaces:delete',
   'workspaces:get-active', 'workspaces:set-active',
   'work-sessions:log', 'work-sessions:get', 'work-sessions:summary',
+  'work-sessions:mark-billed',
+  // Intelligence
+  'intelligence:run', 'intelligence:get-suggestions', 'intelligence:dismiss',
+  'intelligence:get-cross-project', 'intelligence:dismiss-insight',
+  // Billing
+  'invoices:create', 'invoices:get', 'invoices:update-status',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

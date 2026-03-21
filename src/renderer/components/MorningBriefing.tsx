@@ -11,6 +11,7 @@ interface BriefingItem {
 
 export default function MorningBriefing({ onDismiss }: { onDismiss: () => void }) {
   const [briefing, setBriefing] = useState<BriefingItem[]>([]);
+  const [topSuggestions, setTopSuggestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const hour = new Date().toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
 
@@ -19,6 +20,13 @@ export default function MorningBriefing({ onDismiss }: { onDismiss: () => void }
   }, []);
 
   const generateBriefing = async () => {
+    // Run intelligence engine first
+    try {
+      await window.api.invoke('intelligence:run');
+      const suggestions = await window.api.invoke('intelligence:get-suggestions') as any[];
+      setTopSuggestions((suggestions || []).slice(0, 3));
+    } catch { /* non-blocking */ }
+
     const [workspaces, projects] = await Promise.all([
       window.api.invoke('workspaces:get-all') as Promise<(Workspace & { project_count: number })[]>,
       window.api.invoke('projects:getAll') as Promise<Project[]>,
@@ -92,6 +100,19 @@ export default function MorningBriefing({ onDismiss }: { onDismiss: () => void }
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {topSuggestions.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-dark-border">
+            <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-2">🧠 Intelligence</p>
+            <div className="space-y-1.5">
+              {topSuggestions.map((s: any) => (
+                <p key={s.id} className={`text-xs ${s.priority >= 9 ? 'text-red-400' : s.priority >= 7 ? 'text-orange-400' : 'text-accent-blue'}`}>
+                  {s.priority >= 9 ? '🔴' : s.priority >= 7 ? '🟠' : '🔵'} {s.project_name}: {s.title}
+                </p>
+              ))}
+            </div>
           </div>
         )}
 

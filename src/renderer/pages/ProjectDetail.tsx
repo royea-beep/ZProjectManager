@@ -409,6 +409,7 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: (data:
           <div>Launched: {project.launched_at || 'Not yet'}</div>
         </div>
         <NextStepsWidget context="project" project={project} />
+        <ProjectIntelligenceWidget projectId={project.id} />
       </div>
     );
   }
@@ -2378,6 +2379,36 @@ function DocsTab({ projectId, project }: { projectId: number; project: Project }
             </p>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+
+function ProjectIntelligenceWidget({ projectId }: { projectId: number }) {
+  const [suggestions, setSuggestions] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    window.api.invoke('intelligence:get-suggestions', projectId)
+      .then(r => setSuggestions((r as any[]) || []))
+      .catch(() => {});
+  }, [projectId]);
+
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div className="mt-4">
+      <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-2">🧠 Intelligence</p>
+      <div className="space-y-1.5">
+        {suggestions.slice(0, 3).map((s: any) => (
+          <div key={s.id} className={`text-xs p-2 rounded-lg border ${
+            s.priority >= 9 ? 'border-red-400/30 bg-red-400/5 text-red-400' :
+            s.priority >= 7 ? 'border-orange-400/30 bg-orange-400/5 text-orange-400' :
+            'border-accent-blue/30 bg-accent-blue/5 text-accent-blue'
+          }`}>
+            {s.title}
+          </div>
+        ))}
       </div>
     </div>
   );

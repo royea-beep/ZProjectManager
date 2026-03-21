@@ -12,6 +12,8 @@ import SynergyPage from './pages/SynergyPage';
 import RevenuePage from './pages/RevenuePage';
 import PortfolioPage from './pages/PortfolioPage';
 import PromptAnalyticsPage from './pages/PromptAnalyticsPage';
+import IntelligencePage from './pages/IntelligencePage';
+import BillingPage from './pages/BillingPage';
 import IdeaCollector from './components/IdeaCollector';
 import GlobalSearch from './components/GlobalSearch';
 import NotificationBell from './components/NotificationBell';
@@ -57,6 +59,8 @@ const navItems = [
   { path: '/activity', label: 'Activity', icon: '◎' },
   { path: '/settings', label: 'Settings', icon: '⚙' },
   { path: '/prompt-analytics', label: 'Prompt Stats', icon: '📊' },
+  { path: '/intelligence', label: 'Intelligence', icon: '🧠' },
+  { path: '/billing', label: 'Billing', icon: '💼' },
 ];
 
 // Keyboard shortcut definitions
@@ -72,6 +76,8 @@ const SHORTCUTS: { key: string; ctrl?: boolean; alt?: boolean; shift?: boolean; 
   { key: '8', alt: true, description: 'Activity', action: 'nav:/activity' },
   { key: '9', alt: true, description: 'Settings', action: 'nav:/settings' },
   { key: '0', alt: true, description: 'Prompt Stats', action: 'nav:/prompt-analytics' },
+  { key: 'i', alt: true, description: 'Intelligence', action: 'nav:/intelligence' },
+  { key: 'b', alt: true, description: 'Billing', action: 'nav:/billing' },
   { key: 'n', ctrl: true, description: 'New Project', action: 'new-project' },
   { key: '/', ctrl: false, description: 'Focus Search', action: 'search' },
 ];
@@ -301,6 +307,8 @@ export default function App() {
           <Route path="/revenue" element={<RevenuePage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/intelligence" element={<IntelligencePage />} />
+          <Route path="/billing" element={<BillingPage />} />
         </Routes>
       </main>
 

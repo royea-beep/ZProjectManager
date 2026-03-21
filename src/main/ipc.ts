@@ -19,6 +19,7 @@ import { saveSessionLog, readAllSessionLogs, analyzeSessionPatterns } from './se
 import type { SessionEntry } from './session-logger';
 import { parseClaudeOutput } from './conversation-importer';
 import { extractProjectParameters, parametersToDbRows, formatParamsAsContext } from './parameter-extractor';
+import { runIntelligenceEngine, runCrossProjectAnalysis } from './intelligence-engine';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -1633,5 +1634,88 @@ export function registerIpcHandlers(): void {
       stage: project.stage as string,
       category: project.category as string,
     }, args.sprintName, args.agents);
+  });
+
+  // ── INTELLIGENCE ENGINE ─────────────────────────────────────────────────────
+  // Run on app start (5s delay, non-blocking)
+  setTimeout(() => {
+    try {
+      runIntelligenceEngine();
+      runCrossProjectAnalysis();
+    } catch (e) {
+      console.error('Intelligence engine error:', e);
+    }
+  }, 5000);
+
+  ipcMain.handle('intelligence:run', () => {
+    const suggestions = runIntelligenceEngine();
+    runCrossProjectAnalysis();
+    return suggestions;
+  });
+
+  ipcMain.handle('intelligence:get-suggestions', (_e, projectId?: number) => {
+    if (projectId) {
+      return getAll(
+        'SELECT * FROM intelligence_suggestions WHERE project_id = ? AND dismissed = 0 ORDER BY priority DESC',
+        [projectId]
+      );
+    }
+    return getAll(`
+      SELECT s.*, p.name as project_name, p.stage, w.color as ws_color, w.name as ws_name
+      FROM intelligence_suggestions s
+      JOIN projects p ON p.id = s.project_id
+      LEFT JOIN workspaces w ON w.id = p.workspace_id
+      WHERE s.dismissed = 0
+      ORDER BY s.priority DESC
+      LIMIT 50
+    `, []);
+  });
+
+  ipcMain.handle('intelligence:dismiss', (_e, id: string) => {
+    runQuery('UPDATE intelligence_suggestions SET dismissed = 1 WHERE id = ?', [id]);
+    return { ok: true };
+  });
+
+  ipcMain.handle('intelligence:get-cross-project', () => {
+    return getAll(
+      'SELECT * FROM cross_project_insights WHERE dismissed = 0 ORDER BY created_at DESC',
+      []
+    );
+  });
+
+  ipcMain.handle('intelligence:dismiss-insight', (_e, id: string) => {
+    runQuery('UPDATE cross_project_insights SET dismissed = 1 WHERE id = ?', [id]);
+    return { ok: true };
+  });
+
+  // ── BILLING / INVOICES ──────────────────────────────────────────────────────
+  ipcMain.handle('invoices:create', (_e, data: any) => {
+    const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    return runInsert(
+      'INSERT INTO invoices (workspace_id, invoice_number, client_name, total_hours, billing_rate, total_amount, line_items, notes, due_at) VALUES (?,?,?,?,?,?,?,?,?)',
+      [data.workspace_id, invoiceNumber, data.client_name, data.total_hours, data.billing_rate,
+       data.total_amount, JSON.stringify(data.line_items || []), data.notes || null, data.due_at || null]
+    );
+  });
+
+  ipcMain.handle('invoices:get', (_e, workspaceId?: number) => {
+    if (workspaceId) {
+      return getAll('SELECT * FROM invoices WHERE workspace_id = ? ORDER BY issued_at DESC', [workspaceId]);
+    }
+    return getAll('SELECT * FROM invoices ORDER BY issued_at DESC LIMIT 50', []);
+  });
+
+  ipcMain.handle('invoices:update-status', (_e, id: string, status: string) => {
+    if (status === 'paid') {
+      runQuery("UPDATE invoices SET status = ?, paid_at = datetime('now') WHERE id = ?", [status, id]);
+    } else {
+      runQuery('UPDATE invoices SET status = ? WHERE id = ?', [status, id]);
+    }
+    return { ok: true };
+  });
+
+  ipcMain.handle('work-sessions:mark-billed', (_e, projectId: number) => {
+    runQuery('UPDATE work_sessions SET billed = 1 WHERE project_id = ? AND billed = 0', [projectId]);
+    return { ok: true };
   });
 }
