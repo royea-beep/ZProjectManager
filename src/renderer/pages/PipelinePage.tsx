@@ -36,7 +36,9 @@ export default function PipelinePage() {
   const [insights, setInsights] = useState<QualityInsights | null>(null);
   const [megaContent, setMegaContent] = useState<MegaContent | null>(null);
   const [running, setRunning] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'insights'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'insights' | 'conversation'>('overview');
+  const [classifyInput, setClassifyInput] = useState('');
+  const [classifyResult, setClassifyResult] = useState<any>(null);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -104,7 +106,7 @@ export default function PipelinePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-dark-border pb-3">
-        {(['overview', 'content', 'insights'] as const).map(tab => (
+        {(['overview', 'content', 'insights', 'conversation'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -114,7 +116,7 @@ export default function PipelinePage() {
                 : 'text-dark-muted hover:text-dark-text'
             }`}
           >
-            {tab === 'overview' ? '📊 Overview' : tab === 'content' ? '📄 mega_prompts' : '💡 Insights'}
+            {tab === 'overview' ? '📊 Overview' : tab === 'content' ? '📄 mega_prompts' : tab === 'insights' ? '💡 Insights' : '📋 Conversation'}
           </button>
         ))}
       </div>
@@ -232,6 +234,77 @@ export default function PipelinePage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Conversation tab */}
+      {activeTab === 'conversation' && (
+        <div className="space-y-4 max-w-2xl">
+          <div className="p-4 bg-dark-bg border border-dark-border rounded-xl">
+            <p className="text-xs font-semibold text-dark-text mb-3">🔍 Message Classification Types</p>
+            <div className="space-y-2">
+              {[
+                { type: '🧠 Roye', color: 'text-accent-green', desc: 'Short Hebrew text, decisions, questions from his own thinking', example: '"אני רוצה שהדשבורד יראה workspace filter"' },
+                { type: '📋 Bot Output', color: 'text-accent-blue', desc: 'Tables, code blocks, commit hashes, Sprint reports', example: '"Sprint 12 done | TypeScript: clean | Pushed: bcf8833"' },
+                { type: '🔀 Mixed', color: 'text-orange-400', desc: 'Roye adds comment above/below pasted bot output', example: 'Hebrew text + pasted MEGA FINAL REPORT' },
+              ].map(item => (
+                <div key={item.type} className="p-2 bg-dark-surface border border-dark-border rounded-lg">
+                  <p className={`text-xs font-medium ${item.color}`}>{item.type}</p>
+                  <p className="text-[10px] text-dark-muted mt-0.5">{item.desc}</p>
+                  <p className="text-[10px] font-mono text-dark-muted/60 mt-1 italic">{item.example}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 bg-dark-bg border border-dark-border rounded-xl">
+            <p className="text-xs font-semibold text-dark-text mb-2">🧪 Live Classifier</p>
+            <textarea
+              className="w-full bg-dark-surface border border-dark-border rounded-lg px-3 py-2 text-xs text-dark-text font-mono resize-none focus:outline-none focus:border-accent-blue mb-2"
+              rows={4}
+              placeholder="Paste any message here to classify it..."
+              value={classifyInput}
+              onChange={e => setClassifyInput(e.target.value)}
+            />
+            <button
+              onClick={async () => {
+                if (!classifyInput.trim()) return;
+                const result = await window.api.invoke('pipeline:classify-message', classifyInput) as any;
+                setClassifyResult(result);
+              }}
+              className="text-xs px-3 py-1.5 rounded-lg bg-accent-blue/15 text-accent-blue hover:bg-accent-blue/25 transition-colors"
+            >
+              Classify
+            </button>
+            {classifyResult && (
+              <div className="mt-3 p-3 bg-dark-surface border border-dark-border rounded-lg">
+                <div className="flex items-center gap-3 mb-1">
+                  <span className={`text-xs font-bold ${
+                    classifyResult.source === 'bot_output' ? 'text-accent-blue' :
+                    classifyResult.source === 'roye' ? 'text-accent-green' :
+                    classifyResult.source === 'mixed' ? 'text-orange-400' : 'text-dark-muted'
+                  }`}>
+                    {classifyResult.source === 'bot_output' ? '📋 Bot Output' :
+                     classifyResult.source === 'roye' ? '🧠 Roye' :
+                     classifyResult.source === 'mixed' ? '🔀 Mixed' : '❓ Unknown'}
+                  </span>
+                  <span className="text-[10px] text-dark-muted">confidence: {Math.round((classifyResult.confidence || 0) * 100)}%</span>
+                </div>
+                {classifyResult.indicators?.length > 0 && (
+                  <p className="text-[10px] text-dark-muted/70">Signals: {classifyResult.indicators.slice(0, 4).join(', ')}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 bg-dark-bg border border-dark-border rounded-xl">
+            <p className="text-xs font-semibold text-dark-text mb-2">📊 Why this matters for the learning loop</p>
+            <p className="text-xs text-dark-muted leading-relaxed">
+              When the system knows which parts are Roye's original requests vs. bot outputs,
+              it learns: what request styles lead to Q=10 sessions, what bot output formats get
+              immediate approval, and where the gap between intention and execution appears.
+            </p>
+          </div>
         </div>
       )}
 

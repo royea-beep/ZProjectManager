@@ -85,6 +85,9 @@ const ALLOWED_CHANNELS = new Set([
   // Pipeline — 11STEPS2DONE
   'pipeline:load-mega-prompts', 'pipeline:get-stats', 'pipeline:run',
   'pipeline:get-latest-content', 'pipeline:get-quality-insights', 'pipeline:enhance-prompt',
+  'pipeline:classify-message',
+  // Docs — working style
+  'docs:generate-working-style', 'docs:deploy-working-style',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

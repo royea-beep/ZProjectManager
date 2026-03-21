@@ -2116,6 +2116,7 @@ function DesignDimensionEditor({ score, onSave }: { score: WebsiteDesignScore; o
 function ImportTab({ projectId, onImported }: { projectId: number; onImported: () => void }) {
   const [rawText, setRawText] = React.useState('');
   const [result, setResult] = React.useState<api.ImportedSession | null>(null);
+  const [classification, setClassification] = React.useState<any>(null);
   const [importing, setImporting] = React.useState(false);
   const { toast } = useToast();
 
@@ -2126,6 +2127,9 @@ function ImportTab({ projectId, onImported }: { projectId: number; onImported: (
       const res = await api.importClaudeOutput({ projectId, rawText });
       setResult(res);
       onImported();
+      // Also classify the message
+      const cls = await window.api.invoke('pipeline:classify-message', rawText) as any;
+      setClassification(cls);
       toast(`Imported: ${res.filesChanged.length} files, ${res.decisions.length} decisions, ${res.nextSteps.length} tasks`, 'success');
     } catch {
       toast('Import failed', 'error');
@@ -2163,7 +2167,7 @@ function ImportTab({ projectId, onImported }: { projectId: number; onImported: (
         </button>
         {rawText && (
           <button
-            onClick={() => { setRawText(''); setResult(null); }}
+            onClick={() => { setRawText(''); setResult(null); setClassification(null); }}
             className="text-xs text-dark-muted hover:text-dark-text transition-colors"
           >
             Clear
@@ -2198,6 +2202,27 @@ function ImportTab({ projectId, onImported }: { projectId: number; onImported: (
                 {result.nextSteps.map((t, i) => <li key={i} className="text-xs text-dark-muted">· {t}</li>)}
               </ul>
             </div>
+          )}
+        </div>
+      )}
+
+      {classification && (
+        <div className="mt-3 p-3 bg-accent-blue/5 border border-accent-blue/20 rounded-lg">
+          <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-2">Message Classification</p>
+          <div className="flex items-center gap-3 mb-2">
+            <span className={`text-xs font-medium ${
+              classification.source === 'bot_output' ? 'text-accent-blue' :
+              classification.source === 'roye' ? 'text-accent-green' :
+              classification.source === 'mixed' ? 'text-orange-400' : 'text-dark-muted'
+            }`}>
+              {classification.source === 'bot_output' ? '📋 Bot Output' :
+               classification.source === 'roye' ? '🧠 Roye' :
+               classification.source === 'mixed' ? '🔀 Mixed' : '❓ Unknown'}
+            </span>
+            <span className="text-[10px] text-dark-muted">confidence: {Math.round((classification.confidence || 0) * 100)}%</span>
+          </div>
+          {classification.indicators?.length > 0 && (
+            <p className="text-[10px] text-dark-muted/60">Signals: {classification.indicators.slice(0, 3).join(', ')}</p>
           )}
         </div>
       )}
@@ -2265,6 +2290,7 @@ const DOCS_LIST = [
   { id: 'iron-rules' as const, label: 'IRON_RULES.md', emoji: '⚙️', filename: 'IRON_RULES.md', desc: 'Rules that NEVER break — auto-tailored to category and stage' },
   { id: 'checklist' as const, label: 'Pre-Launch Checklist', emoji: '🚀', filename: 'PRE_LAUNCH_CHECKLIST.md', desc: 'Complete before any launch — technical, content, monitoring' },
   { id: 'vamos' as const, label: 'VAMOS Sprint', emoji: '⚡', filename: 'VAMOS-SPRINT.md', desc: 'Full sprint prompt template with FIRST ACTIONS, agents, deploy, session log' },
+  { id: 'working-style' as const, label: 'ROYE_WORKING_STYLE.md', emoji: '🤝', filename: 'docs/ROYE_WORKING_STYLE.md', desc: 'Working style guide — bot reads this on first run of every project' },
 ];
 
 type DocId = typeof DOCS_LIST[number]['id'];
@@ -2285,6 +2311,7 @@ function DocsTab({ projectId, project }: { projectId: number; project: Project }
       if (id === 'memory') result = await api.generateMemoryMdDoc(projectId);
       else if (id === 'iron-rules') result = await api.generateIronRulesMdDoc(projectId);
       else if (id === 'checklist') result = await api.generatePreLaunchChecklistDoc(projectId);
+      else if (id === 'working-style') result = await window.api.invoke('docs:generate-working-style') as string;
       else if (id === 'vamos') result = await api.generateVamsosSprintDoc({
         projectId,
         sprintName: 'Sprint Name',
@@ -2360,16 +2387,31 @@ function DocsTab({ projectId, project }: { projectId: number; project: Project }
               <p className="text-xs text-dark-muted font-mono">
                 Save as <span className="text-accent-blue">{activeDocMeta?.filename}</span> in project root
               </p>
-              <button
-                onClick={copy}
-                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                  copied
-                    ? 'bg-accent-green/15 border-accent-green/40 text-accent-green'
-                    : 'bg-dark-surface border-dark-border text-dark-text hover:border-accent-blue/40'
-                }`}
-              >
-                {copied ? '✅ Copied' : '📋 Copy'}
-              </button>
+              <div className="flex items-center gap-2">
+                {activeDoc === 'working-style' && (
+                  <button
+                    onClick={async () => {
+                      const projects = await api.getProjects();
+                      const paths = projects.filter(p => p.repo_path).map(p => p.repo_path as string);
+                      const result = await window.api.invoke('docs:deploy-working-style', { content, projectPaths: paths }) as { deployed: number; total: number };
+                      toast(`Deployed to ${result.deployed}/${result.total} projects`, 'success');
+                    }}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-accent-green/15 border border-accent-green/30 text-accent-green hover:bg-accent-green/25 transition-colors"
+                  >
+                    🚀 Deploy to All
+                  </button>
+                )}
+                <button
+                  onClick={copy}
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                    copied
+                      ? 'bg-accent-green/15 border-accent-green/40 text-accent-green'
+                      : 'bg-dark-surface border-dark-border text-dark-text hover:border-accent-blue/40'
+                  }`}
+                >
+                  {copied ? '✅ Copied' : '📋 Copy'}
+                </button>
+              </div>
             </div>
             <div className="flex-1 bg-dark-bg border border-dark-border rounded-xl p-4 text-xs font-mono text-dark-text/85 whitespace-pre-wrap leading-relaxed overflow-y-auto max-h-[500px]">
               {content}

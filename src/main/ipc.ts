@@ -21,6 +21,7 @@ import { parseClaudeOutput } from './conversation-importer';
 import { extractProjectParameters, parametersToDbRows, formatParamsAsContext } from './parameter-extractor';
 import { runIntelligenceEngine, runCrossProjectAnalysis } from './intelligence-engine';
 import { loadMegaPrompts, getSessionStats, runPipeline, getLatestMegaPromptsFile } from './pipeline-reader';
+import { classifyMessage } from './context-classifier';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -1625,6 +1626,32 @@ export function registerIpcHandlers(): void {
     });
   });
 
+  ipcMain.handle('docs:generate-working-style', () => {
+    const templatePath = path.join(app.getAppPath(), 'src/main/templates/ROYE_WORKING_STYLE.md');
+    try {
+      return fs.readFileSync(templatePath, 'utf8');
+    } catch {
+      // Fallback — read from docs folder
+      const fallback = path.join(app.getAppPath(), 'docs/ROYE_WORKING_STYLE.md');
+      return fs.readFileSync(fallback, 'utf8');
+    }
+  });
+
+  ipcMain.handle('docs:deploy-working-style', (_e, args: { content: string; projectPaths: string[] }) => {
+    let deployed = 0;
+    for (const projectPath of args.projectPaths) {
+      try {
+        const docsDir = path.join(projectPath, 'docs');
+        if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true });
+        fs.writeFileSync(path.join(docsDir, 'ROYE_WORKING_STYLE.md'), args.content, 'utf8');
+        deployed++;
+      } catch (e) {
+        console.error(`Failed to deploy to ${projectPath}:`, e);
+      }
+    }
+    return { deployed, total: args.projectPaths.length };
+  });
+
   ipcMain.handle('docs:generate-vamos', (_e, args: { projectId: number; sprintName: string; agents: Array<{ name: string; task: string }> }) => {
     const project = getOne('SELECT * FROM projects WHERE id = ?', [args.projectId]) as Record<string, unknown> | null;
     if (!project) return { error: 'Project not found' };
@@ -1771,6 +1798,10 @@ export function registerIpcHandlers(): void {
       pipelineDir: dirRow?.value,
       lastRun: lastRunRow?.value,
     };
+  });
+
+  ipcMain.handle('pipeline:classify-message', (_e, text: string) => {
+    return classifyMessage(text);
   });
 
   ipcMain.handle('pipeline:enhance-prompt', (_e, args: { prompt: string; phase: string }) => {
