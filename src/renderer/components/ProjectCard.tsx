@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import type { Project } from '../../shared/types';
 import StatusBadge from './StatusBadge';
 import PriorityBadge from './PriorityBadge';
-import HealthBar from './HealthBar';
+import HealthRing from './HealthRing';
+import * as api from '../services/api';
 
 function daysAgo(dateStr: string | null): string {
   if (!dateStr) return 'Never';
@@ -33,25 +34,45 @@ interface ProjectCardProps {
 
 export default function ProjectCard({ project, cost, gitClean, taskProgress }: ProjectCardProps) {
   const navigate = useNavigate();
+  const [copied, setCopied] = React.useState(false);
   const stale = project.last_worked_at &&
     (Date.now() - new Date(project.last_worked_at).getTime()) > 14 * 86400000;
-
-  const healthColor = project.health_score >= 70 ? 'bg-green-500' : project.health_score >= 40 ? 'bg-yellow-500' : 'bg-red-500';
 
   const gitDotColor = gitClean === true ? 'bg-green-500' : gitClean === false ? 'bg-yellow-500' : 'bg-gray-500';
   const gitDotTitle = gitClean === true ? 'Git: clean' : gitClean === false ? 'Git: uncommitted changes' : 'No git';
 
+  const handleCopyGitHub = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!project.github_repo) return;
+    navigator.clipboard.writeText(`https://github.com/${project.github_repo}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  const handleOpenVSCode = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!project.repo_path) return;
+    await api.openVSCode(project.repo_path);
+  };
+
+  const handleOpenTerminal = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!project.repo_path) return;
+    await api.openTerminal(project.repo_path);
+  };
+
   return (
     <div
       onClick={() => navigate(`/project/${project.id}`)}
-      className={`bg-dark-surface border rounded-lg overflow-hidden cursor-pointer transition-all hover:border-accent-blue/50 hover:bg-dark-hover hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5 ${
+      className={`group bg-dark-surface border rounded-lg overflow-hidden cursor-pointer transition-all hover:border-accent-blue/50 hover:bg-dark-hover hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5 ${
         stale ? 'border-accent-yellow/40' : 'border-dark-border'
       }`}
     >
-      {/* Mini health bar at top */}
-      <div className="h-1 w-full">
-        <div className={`h-full ${healthColor} transition-all`} style={{ width: `${project.health_score}%` }} />
-      </div>
+      {/* Thin accent line at top */}
+      <div className="h-0.5 w-full" style={{
+        background: project.health_score >= 70 ? '#22c55e' : project.health_score >= 40 ? '#f59e0b' : '#ef4444',
+        opacity: 0.6,
+      }} />
 
       <div className="p-4">
         <div className="flex items-start justify-between mb-2">
@@ -68,6 +89,8 @@ export default function ProjectCard({ project, cost, gitClean, taskProgress }: P
               </span>
             )}
             <PriorityBadge priority={project.priority} />
+            {/* Health ring */}
+            <HealthRing score={project.health_score} size={36} strokeWidth={3} />
           </div>
         </div>
 
@@ -75,7 +98,7 @@ export default function ProjectCard({ project, cost, gitClean, taskProgress }: P
           {project.description || 'No description'}
         </p>
 
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
           <StatusBadge status={project.status} />
           {project.type && (
             <span className="text-xs text-dark-muted flex items-center gap-1">
@@ -93,7 +116,43 @@ export default function ProjectCard({ project, cost, gitClean, taskProgress }: P
           )}
         </div>
 
-        <HealthBar score={project.health_score} />
+        {/* Quick actions — visible on hover */}
+        <div className="flex items-center gap-1 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+          {project.repo_path && (
+            <button
+              onClick={handleOpenVSCode}
+              title="Open in VS Code"
+              className="text-[11px] px-2 py-0.5 rounded bg-dark-bg border border-dark-border text-dark-muted hover:text-accent-blue hover:border-accent-blue/40 transition-colors"
+            >
+              Code
+            </button>
+          )}
+          {project.repo_path && (
+            <button
+              onClick={handleOpenTerminal}
+              title="Open Terminal"
+              className="text-[11px] px-2 py-0.5 rounded bg-dark-bg border border-dark-border text-dark-muted hover:text-accent-green hover:border-accent-green/40 transition-colors"
+            >
+              Term
+            </button>
+          )}
+          {project.github_repo && (
+            <button
+              onClick={handleCopyGitHub}
+              title="Copy GitHub URL"
+              className="text-[11px] px-2 py-0.5 rounded bg-dark-bg border border-dark-border text-dark-muted hover:text-accent-purple hover:border-accent-purple/40 transition-colors"
+            >
+              {copied ? 'Copied!' : 'GH'}
+            </button>
+          )}
+          <button
+            onClick={e => { e.stopPropagation(); navigate(`/project/${project.id}?tab=Memory`); }}
+            title="Start Session"
+            className="text-[11px] px-2 py-0.5 rounded bg-dark-bg border border-dark-border text-dark-muted hover:text-accent-yellow hover:border-accent-yellow/40 transition-colors"
+          >
+            Session
+          </button>
+        </div>
 
         {/* Task progress */}
         {taskProgress && taskProgress.total > 0 && (
