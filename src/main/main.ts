@@ -175,6 +175,19 @@ app.whenReady().then(async () => {
     try { detectPatterns({ getAll, runInsert, runQuery }); } catch (e) { console.error('[patterns] Auto-detect failed:', e); }
   }, 5000);
 
+  // Auto-sync GitHub data on startup (30s delay to not slow startup)
+  setTimeout(async () => {
+    try {
+      const { syncAllProjects } = await import('./github-api');
+      const result = await syncAllProjects();
+      if (result.synced > 0) {
+        console.log(`[github] Auto-synced ${result.synced} repos`);
+      }
+    } catch (e) {
+      console.error('[github] Auto-sync failed:', e);
+    }
+  }, 30000);
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();

@@ -275,3 +275,16 @@ export const dismissNotification = (id: string) => invoke(IPC_CHANNELS.DISMISS_N
 // Batch
 export const batchTaskProgress = () => invoke(IPC_CHANNELS.BATCH_TASK_PROGRESS) as Promise<Record<number, { done: number; total: number }>>;
 export const batchGitStatus = (projects: { id: number; repo_path: string }[]) => invoke(IPC_CHANNELS.BATCH_GIT_STATUS, projects) as Promise<Record<number, boolean | null>>;
+
+// GitHub API
+export const githubSyncAll = () => invoke(IPC_CHANNELS.GITHUB_SYNC_ALL) as Promise<{ synced: number; errors: number }>;
+export const githubSetToken = (token: string) => invoke(IPC_CHANNELS.GITHUB_SET_TOKEN, token) as Promise<{ ok: boolean }>;
+
+// Revenue
+import type { RevenueEntry } from '../../shared/types';
+export const getRevenueEntries = () => invoke(IPC_CHANNELS.REVENUE_GET_ALL) as Promise<RevenueEntry[]>;
+export const createRevenueEntry = (data: { project_id: number; amount: number; type: string; date?: string; notes?: string }) =>
+  invoke(IPC_CHANNELS.REVENUE_CREATE_ENTRY, data) as Promise<number>;
+export const deleteRevenueEntry = (id: number) => invoke(IPC_CHANNELS.REVENUE_DELETE_ENTRY, id) as Promise<boolean>;
+export const updateProjectRevenue = (id: number, data: { mrr?: number; arr?: number; revenue_model?: string; paying_customers?: number; revenue_notes?: string }) =>
+  invoke(IPC_CHANNELS.REVENUE_UPDATE_PROJECT, id, data) as Promise<boolean>;

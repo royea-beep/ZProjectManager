@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 6;
+const CURRENT_SCHEMA_VERSION = 7;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -260,6 +260,94 @@ function runMigrations(fromVersion: number): void {
       ['TestFlight build 5 — add testers & smoke-test']
     );
   }
+  // Migration 6 -> 7: GitHub API columns + revenue columns + revenue_entries table + github_repo seeds
+  if (fromVersion < 7) {
+    // Add GitHub columns to projects (try/catch each since sql.js doesn't support IF NOT EXISTS for ALTER)
+    const githubCols = [
+      'ALTER TABLE projects ADD COLUMN github_repo TEXT',
+      'ALTER TABLE projects ADD COLUMN github_stars INTEGER DEFAULT 0',
+      'ALTER TABLE projects ADD COLUMN github_open_prs INTEGER DEFAULT 0',
+      'ALTER TABLE projects ADD COLUMN github_ci_status TEXT DEFAULT \'unknown\'',
+      'ALTER TABLE projects ADD COLUMN github_last_push TEXT',
+      'ALTER TABLE projects ADD COLUMN github_synced_at TEXT',
+    ];
+    for (const sql of githubCols) {
+      try { db.run(sql); } catch { /* column already exists */ }
+    }
+
+    // Add revenue columns to projects
+    const revenueCols = [
+      'ALTER TABLE projects ADD COLUMN mrr INTEGER DEFAULT 0',
+      'ALTER TABLE projects ADD COLUMN arr INTEGER DEFAULT 0',
+      'ALTER TABLE projects ADD COLUMN revenue_model TEXT DEFAULT \'pre-revenue\'',
+      'ALTER TABLE projects ADD COLUMN paying_customers INTEGER DEFAULT 0',
+      'ALTER TABLE projects ADD COLUMN revenue_notes TEXT',
+    ];
+    for (const sql of revenueCols) {
+      try { db.run(sql); } catch { /* column already exists */ }
+    }
+
+    // Create revenue_entries table
+    db.run(`CREATE TABLE IF NOT EXISTS revenue_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      amount INTEGER NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('mrr','one-time','refund')),
+      date TEXT NOT NULL DEFAULT (date('now')),
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_revenue_project ON revenue_entries(project_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_revenue_date ON revenue_entries(date)`);
+
+    // Settings: github_token + github_username
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('github_token', '')`);
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('github_username', 'royea-beep')`);
+
+    // Seed real github_repo values for known projects
+    const repoMap: Array<[string, string]> = [
+      ['9Soccer', 'royea-beep/90Soccer-Mascots'],
+      ['90Soccer', 'royea-beep/90Soccer-Mascots'],
+      ['Caps', 'royea-beep/Caps'],
+      ['Wingman', 'royea-beep/Wingman'],
+      ['PostPilot', 'royea-beep/PostPilot'],
+      ['KeyDrop', 'royea-beep/KeyDrop'],
+      ['ExplainIt', 'royea-beep/ExplainIt'],
+      ['analyzer', 'royea-beep/analyzer-standalone'],
+      ['Analyzer', 'royea-beep/analyzer-standalone'],
+      ['VenueKit', 'royea-beep/VenueKit'],
+      ['TokenWise', 'royea-beep/TokenWise'],
+      ['Heroes', 'royea-beep/Heroes-Hadera'],
+      ['ZProjectManager', 'royea-beep/ZProjectManager'],
+      ['ftable', 'royea-beep/ftable'],
+    ];
+    for (const [nameFragment, repo] of repoMap) {
+      try {
+        db.run(
+          `UPDATE projects SET github_repo = ? WHERE name LIKE ? AND (github_repo IS NULL OR github_repo = '')`,
+          [repo, `%${nameFragment}%`]
+        );
+      } catch { /* ignore */ }
+    }
+
+    // Seed revenue_model for known live projects
+    const revenueModels: Array<[string, string, number, number]> = [
+      ['ftable', 'subscription', 0, 0],
+      ['analyzer', 'subscription', 0, 0],
+      ['PostPilot', 'subscription', 0, 0],
+      ['KeyDrop', 'subscription', 0, 0],
+      ['ExplainIt', 'subscription', 0, 0],
+    ];
+    for (const [nameFragment, model, mrr, customers] of revenueModels) {
+      try {
+        db.run(
+          `UPDATE projects SET revenue_model = ?, mrr = ?, paying_customers = ? WHERE name LIKE ? AND revenue_model IS NULL`,
+          [model, mrr, customers, `%${nameFragment}%`]
+        );
+      } catch { /* ignore */ }
+    }
+  }
+
   // Migration 5 -> 6: session 2026-03-08 learnings (idempotent)
   if (fromVersion < 6) {
     const anchor = db.exec("SELECT 1 FROM learnings WHERE learning LIKE '%PostPilot ftable caption API%' LIMIT 1");

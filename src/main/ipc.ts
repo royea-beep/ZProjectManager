@@ -49,6 +49,7 @@ export function registerIpcHandlers(): void {
       'name', 'description', 'type', 'stage', 'status', 'priority', 'goal', 'tech_stack',
       'repo_path', 'repo_url', 'has_git', 'monetization_model', 'main_blocker', 'next_action',
       'health_score', 'last_worked_at', 'launched_at',
+      'github_repo', 'mrr', 'arr', 'revenue_model', 'paying_customers', 'revenue_notes',
     ]);
     const keys = Object.keys(data).filter(k => ALLOWED_COLS.has(k));
     if (keys.length === 0) return getOne('SELECT * FROM projects WHERE id = ?', [id]);
@@ -1119,5 +1120,49 @@ export function registerIpcHandlers(): void {
       results[p.id] = gs ? (gs.uncommitted === 0 && gs.untracked === 0) : null;
     }));
     return results;
+  });
+
+  // ---- GITHUB API ----
+  ipcMain.handle(IPC_CHANNELS.GITHUB_SYNC_ALL, async () => {
+    const { syncAllProjects } = await import('./github-api');
+    const result = await syncAllProjects();
+    return result;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GITHUB_SET_TOKEN, (_e, token: string) => {
+    setSetting('github_token', token || '');
+    return { ok: true };
+  });
+
+  // ---- REVENUE ----
+  ipcMain.handle(IPC_CHANNELS.REVENUE_GET_ALL, () => {
+    return getAll(`
+      SELECT re.*, p.name as project_name
+      FROM revenue_entries re
+      JOIN projects p ON re.project_id = p.id
+      ORDER BY re.date DESC, re.created_at DESC
+    `);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.REVENUE_CREATE_ENTRY, (_e, data: { project_id: number; amount: number; type: string; date?: string; notes?: string }) => {
+    return runInsert(
+      `INSERT INTO revenue_entries (project_id, amount, type, date, notes) VALUES (?, ?, ?, ?, ?)`,
+      [data.project_id, data.amount, data.type, data.date || new Date().toISOString().slice(0, 10), data.notes || null]
+    );
+  });
+
+  ipcMain.handle(IPC_CHANNELS.REVENUE_DELETE_ENTRY, (_e, id: number) => {
+    runQuery('DELETE FROM revenue_entries WHERE id = ?', [id]);
+    return true;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.REVENUE_UPDATE_PROJECT, (_e, id: number, data: { mrr?: number; arr?: number; revenue_model?: string; paying_customers?: number; revenue_notes?: string }) => {
+    const allowed = new Set(['mrr', 'arr', 'revenue_model', 'paying_customers', 'revenue_notes']);
+    const keys = Object.keys(data).filter(k => allowed.has(k));
+    if (keys.length === 0) return false;
+    const sets = keys.map(k => `${k} = ?`).join(', ');
+    const values = keys.map(k => (data as Record<string, unknown>)[k]);
+    runQuery(`UPDATE projects SET ${sets}, updated_at = datetime('now') WHERE id = ?`, [...values, id]);
+    return true;
   });
 }

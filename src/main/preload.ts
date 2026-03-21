@@ -52,6 +52,10 @@ const ALLOWED_CHANNELS = new Set([
   'notifications:getAll', 'notifications:dismiss',
   // Batch
   'batch:taskProgress', 'batch:gitStatus',
+  // GitHub API
+  'github:syncAll', 'github:setToken',
+  // Revenue
+  'revenue:getAll', 'revenue:createEntry', 'revenue:deleteEntry', 'revenue:updateProject',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

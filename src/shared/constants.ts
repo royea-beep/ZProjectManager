@@ -271,4 +271,12 @@ export const IPC_CHANNELS = {
   // Batch
   BATCH_TASK_PROGRESS: 'batch:taskProgress',
   BATCH_GIT_STATUS: 'batch:gitStatus',
+  // GitHub API
+  GITHUB_SYNC_ALL: 'github:syncAll',
+  GITHUB_SET_TOKEN: 'github:setToken',
+  // Revenue
+  REVENUE_GET_ALL: 'revenue:getAll',
+  REVENUE_CREATE_ENTRY: 'revenue:createEntry',
+  REVENUE_DELETE_ENTRY: 'revenue:deleteEntry',
+  REVENUE_UPDATE_PROJECT: 'revenue:updateProject',
 } as const;

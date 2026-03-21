@@ -14,6 +14,16 @@ function daysAgo(dateStr: string | null): string {
   return `${diff}d ago`;
 }
 
+function pushAgo(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+  if (diff === 0) return 'pushed today';
+  if (diff === 1) return 'pushed 1d ago';
+  if (diff < 30) return `pushed ${diff}d ago`;
+  if (diff < 365) return `pushed ${Math.floor(diff / 30)}mo ago`;
+  return `pushed ${Math.floor(diff / 365)}y ago`;
+}
+
 interface ProjectCardProps {
   project: Project;
   cost?: number | null;
@@ -115,6 +125,36 @@ export default function ProjectCard({ project, cost, gitClean, taskProgress }: P
           <p className="mt-2 text-[11px] text-dark-muted/70 truncate">
             {project.next_action}
           </p>
+        )}
+
+        {/* GitHub badges */}
+        {project.github_repo && (
+          <div className="flex flex-wrap items-center gap-1 mt-2">
+            {project.github_ci_status === 'passing' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 font-medium">CI ✓</span>
+            )}
+            {project.github_ci_status === 'failing' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 font-medium">CI ✗</span>
+            )}
+            {project.github_ci_status === 'pending' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-400 font-medium">CI ⟳</span>
+            )}
+            {(project.github_open_prs ?? 0) > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-purple/15 text-accent-purple font-medium">
+                {project.github_open_prs} PR{(project.github_open_prs ?? 0) > 1 ? 's' : ''}
+              </span>
+            )}
+            {(project.github_stars ?? 0) > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400">
+                ★ {project.github_stars}
+              </span>
+            )}
+            {project.github_last_push && (
+              <span className="text-[10px] text-dark-muted/60">
+                {pushAgo(project.github_last_push)}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>

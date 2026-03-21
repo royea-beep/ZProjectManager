@@ -50,6 +50,12 @@ export default function SettingsPage() {
   const [clearAuditConfirm, setClearAuditConfirm] = useState(false);
   const [dangerMsg, setDangerMsg] = useState('');
 
+  // GitHub state
+  const [githubToken, setGithubToken] = useState('');
+  const [githubTokenSaved, setGithubTokenSaved] = useState(false);
+  const [githubSyncing, setGithubSyncing] = useState(false);
+  const [githubSyncMsg, setGithubSyncMsg] = useState('');
+
   const loadBackupData = useCallback(async () => {
     const [time, list, dir] = await Promise.all([
       api.getLastBackupTime(),
@@ -75,11 +81,17 @@ export default function SettingsPage() {
     setProjectsDir(dir ?? 'C:\\Projects');
   }, []);
 
+  const loadGithubToken = useCallback(async () => {
+    const token = await api.getAppSetting('github_token');
+    if (token) setGithubToken(token);
+  }, []);
+
   useEffect(() => {
     loadBackupData();
     loadStats();
     loadProjectsDir();
-  }, [loadBackupData, loadStats, loadProjectsDir]);
+    loadGithubToken();
+  }, [loadBackupData, loadStats, loadProjectsDir, loadGithubToken]);
 
   const handleScan = async () => {
     setScanning(true);
@@ -149,6 +161,29 @@ export default function SettingsPage() {
       setBackupMsg('Restore failed: backup file not found.');
     }
     setTimeout(() => setBackupMsg(''), 6000);
+  };
+
+  const handleSaveGithubToken = async () => {
+    await api.githubSetToken(githubToken.trim());
+    setGithubTokenSaved(true);
+    toast('GitHub token saved', 'success');
+    setTimeout(() => setGithubTokenSaved(false), 2000);
+  };
+
+  const handleGithubSyncAll = async () => {
+    setGithubSyncing(true);
+    setGithubSyncMsg('');
+    try {
+      const result = await api.githubSyncAll();
+      setGithubSyncMsg(`Synced ${result.synced} repos${result.errors > 0 ? ` (${result.errors} failed)` : ''}`);
+      toast(`Synced ${result.synced} GitHub repos`, 'success');
+    } catch {
+      setGithubSyncMsg('Sync failed — check token and repo names');
+      toast('GitHub sync failed', 'error');
+    } finally {
+      setGithubSyncing(false);
+      setTimeout(() => setGithubSyncMsg(''), 5000);
+    }
   };
 
   const handleClearAuditLog = async () => {
@@ -453,6 +488,47 @@ export default function SettingsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* GitHub Integration */}
+        <div className="bg-dark-surface border border-dark-border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-medium">GitHub Integration</h3>
+              <p className="text-xs text-dark-muted mt-0.5">Live CI status, open PRs, stars, and last push on project cards</p>
+            </div>
+            <button
+              onClick={handleGithubSyncAll}
+              disabled={githubSyncing || !githubToken}
+              className="px-3 py-1.5 text-sm bg-dark-bg border border-dark-border text-dark-text rounded hover:bg-dark-hover disabled:opacity-40 whitespace-nowrap"
+            >
+              {githubSyncing ? 'Syncing...' : 'Sync Now'}
+            </button>
+          </div>
+          <div className="flex gap-2 mb-2">
+            <input
+              type="password"
+              value={githubToken}
+              onChange={e => { setGithubToken(e.target.value); setGithubTokenSaved(false); }}
+              placeholder="ghp_..."
+              className="flex-1 bg-dark-bg border border-dark-border rounded px-3 py-1.5 text-sm text-dark-text placeholder-dark-muted focus:outline-none focus:border-accent-blue font-mono"
+            />
+            <button
+              onClick={handleSaveGithubToken}
+              className="px-3 py-1.5 text-sm bg-accent-blue text-white rounded hover:bg-accent-blue/80 whitespace-nowrap"
+            >
+              {githubTokenSaved ? 'Saved ✓' : 'Save'}
+            </button>
+          </div>
+          <p className="text-xs text-dark-muted">
+            Create at github.com → Settings → Developer settings → Personal access tokens → Fine-grained tokens.
+            Required permissions: <span className="text-dark-text">Contents (read)</span>, <span className="text-dark-text">Actions (read)</span>, <span className="text-dark-text">Pull requests (read)</span>.
+          </p>
+          {githubSyncMsg && (
+            <p className={`text-xs mt-2 ${githubSyncMsg.includes('failed') || githubSyncMsg.includes('Failed') ? 'text-red-400' : 'text-accent-green'}`}>
+              {githubSyncMsg}
+            </p>
+          )}
         </div>
 
         {/* Danger Zone */}

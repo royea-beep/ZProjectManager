@@ -19,6 +19,30 @@ export interface Project {
   launched_at: string | null;
   created_at: string;
   updated_at: string;
+  // GitHub API fields (v7)
+  github_repo: string | null;
+  github_stars: number | null;
+  github_open_prs: number | null;
+  github_ci_status: 'passing' | 'failing' | 'pending' | 'unknown' | null;
+  github_last_push: string | null;
+  github_synced_at: string | null;
+  // Revenue fields (v7)
+  mrr: number | null;
+  arr: number | null;
+  revenue_model: string | null;
+  paying_customers: number | null;
+  revenue_notes: string | null;
+}
+
+export interface RevenueEntry {
+  id: number;
+  project_id: number;
+  amount: number;
+  type: 'mrr' | 'one-time' | 'refund';
+  date: string;
+  notes: string | null;
+  created_at: string;
+  project_name?: string;
 }
 
 export interface ProjectSession {
