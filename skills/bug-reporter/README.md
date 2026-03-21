@@ -1,23 +1,41 @@
 # BugReporter Skill
-## Learned from: 9Soccer VAMOS 97
+# Source: 9Soccer VAMOS 97 + V108 iOS fix
+# Last updated: 2026-03-21
 
 ## What it does:
-Tester sees bug → taps 🐛 → records video →
-uploads → Claude AI analyzes → GitHub Issue created →
-appears in Dashboard → assigned to sprint → fixed
+Tester taps 🐛 → records video → uploads to Supabase Storage
+→ Edge Function → Claude AI analysis → GitHub Issue created
+→ Dashboard /bugs page → assign to sprint → fix it
 
-## iOS Video Cascade:
-1. getDisplayMedia (screen+audio) — desktop/web
-2. getUserMedia with video — iOS camera fallback
-3. getUserMedia audio only — last resort
-Runtime MIME: webm on desktop, mp4 on iOS
+## iOS Video Cascade (REQUIRED — getDisplayMedia not supported on iOS):
+```typescript
+async function getRecordingStream(): Promise<MediaStream> {
+  if (typeof navigator.mediaDevices?.getDisplayMedia === "function") {
+    try { return await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }); }
+    catch {}
+  }
+  try { return await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); }
+  catch {}
+  return await navigator.mediaDevices.getUserMedia({ audio: true });
+}
 
-## Required Supabase:
-- Table: bug_reports
-- Storage bucket: bug-report-videos
-- Edge Function: analyze-bug-report
-- Secrets: ANTHROPIC_API_KEY, GITHUB_TOKEN
+const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+  ? "video/webm;codecs=vp8,opus"
+  : MediaRecorder.isTypeSupported("video/mp4") ? "video/mp4" : "";
+```
+
+## Required Supabase setup:
+Table: bug_reports (id, tester_name, video_url, language, status, severity,
+                     ai_summary, ai_steps, ai_screen, github_issue_url, vamos_sprint)
+Storage bucket: bug-report-videos (public read, 50MB limit)
+Edge Function: analyze-bug-report
+Secrets: ANTHROPIC_API_KEY, GITHUB_TOKEN
+
+## Feature flag gate (only show in TestFlight):
+```typescript
+const bugReporterEnabled = await isEnabled("bug_reporter"); // DB flag
+```
 
 ## Template files:
-See C:/Projects/90soccer/src/app/bug-report/
-    C:/Projects/90soccer/supabase/functions/analyze-bug-report/
+src/app/bug-report/ (in 9Soccer project)
+supabase/functions/analyze-bug-report/ (in 9Soccer project)
