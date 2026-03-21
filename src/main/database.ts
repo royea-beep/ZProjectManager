@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 7;
+const CURRENT_SCHEMA_VERSION = 8;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -260,6 +260,39 @@ function runMigrations(fromVersion: number): void {
       ['TestFlight build 5 — add testers & smoke-test']
     );
   }
+  // Migration 7 -> 8: category column + prompt category seeds
+  if (fromVersion < 8) {
+    try { db.run("ALTER TABLE projects ADD COLUMN category TEXT DEFAULT 'web-saas'"); } catch { /* exists */ }
+
+    // Seed categories based on known project names
+    const categorySeeds: Array<[string, string]> = [
+      ['9Soccer', 'game'],
+      ['90Soccer', 'game'],
+      ['Caps', 'mobile-app'],
+      ['Wingman', 'mobile-app'],
+      ['PostPilot', 'web-saas'],
+      ['KeyDrop', 'web-saas'],
+      ['analyzer', 'ai-tool'],
+      ['Analyzer', 'ai-tool'],
+      ['ExplainIt', 'ai-tool'],
+      ['VenueKit', 'web-saas'],
+      ['TokenWise', 'internal-tool'],
+      ['ZProjectManager', 'desktop-app'],
+      ['ftable', 'internal-tool'],
+      ['Heroes', 'internal-tool'],
+      ['clubgg', 'internal-tool'],
+      ['ftable-hands', 'ai-tool'],
+    ];
+    for (const [nameFragment, category] of categorySeeds) {
+      try {
+        db.run(
+          `UPDATE projects SET category = ? WHERE name LIKE ? AND (category IS NULL OR category = 'web-saas')`,
+          [category, `%${nameFragment}%`]
+        );
+      } catch { /* ignore */ }
+    }
+  }
+
   // Migration 6 -> 7: GitHub API columns + revenue columns + revenue_entries table + github_repo seeds
   if (fromVersion < 7) {
     // Add GitHub columns to projects (try/catch each since sql.js doesn't support IF NOT EXISTS for ALTER)

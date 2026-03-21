@@ -26,6 +26,8 @@ export interface Project {
   github_ci_status: 'passing' | 'failing' | 'pending' | 'unknown' | null;
   github_last_push: string | null;
   github_synced_at: string | null;
+  // Category field (v8)
+  category: string | null;
   // Revenue fields (v7)
   mrr: number | null;
   arr: number | null;

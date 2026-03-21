@@ -10,6 +10,9 @@ import { detectSessionFromGit, getProjectGitStatus, calculateAutoHealth, fetchRe
 import { detectPatterns } from './pattern-detector';
 import { runBackup, getBackupList, getLastBackupTime, restoreBackup, startAutoBackup, getBackupDir_public } from './auto-backup';
 import { generateWeeklyDigest } from './digest';
+import { generateMegaPrompt } from './prompt-engine';
+import { ACTION_GROUPS, ACTION_LABELS } from '../shared/prompt-templates';
+import type { PromptAction } from '../shared/prompt-templates';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -49,7 +52,7 @@ export function registerIpcHandlers(): void {
       'name', 'description', 'type', 'stage', 'status', 'priority', 'goal', 'tech_stack',
       'repo_path', 'repo_url', 'has_git', 'monetization_model', 'main_blocker', 'next_action',
       'health_score', 'last_worked_at', 'launched_at',
-      'github_repo', 'mrr', 'arr', 'revenue_model', 'paying_customers', 'revenue_notes',
+      'github_repo', 'mrr', 'arr', 'revenue_model', 'paying_customers', 'revenue_notes', 'category',
     ]);
     const keys = Object.keys(data).filter(k => ALLOWED_COLS.has(k));
     if (keys.length === 0) return getOne('SELECT * FROM projects WHERE id = ?', [id]);
@@ -1164,5 +1167,63 @@ export function registerIpcHandlers(): void {
     const values = keys.map(k => (data as Record<string, unknown>)[k]);
     runQuery(`UPDATE projects SET ${sets}, updated_at = datetime('now') WHERE id = ?`, [...values, id]);
     return true;
+  });
+
+  // ---- PROMPT ENGINE ----
+  ipcMain.handle(IPC_CHANNELS.PROMPTS_GENERATE, (_e, args: { projectId: number; action: PromptAction; extraContext?: string }) => {
+    const proj = getOne('SELECT * FROM projects WHERE id = ?', [args.projectId]);
+    if (!proj) return '';
+
+    const decisions = getAll(
+      'SELECT decision, reason FROM project_decisions WHERE project_id = ? ORDER BY decided_at DESC LIMIT 8',
+      [args.projectId]
+    ) as { decision: string; reason: string | null }[];
+
+    const tasks = getAll(
+      `SELECT title, priority, status FROM project_tasks WHERE project_id = ? AND status != 'done' ORDER BY
+        CASE priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END LIMIT 5`,
+      [args.projectId]
+    ) as { title: string; priority: string; status: string }[];
+
+    const sessions = getAll(
+      'SELECT summary, session_date FROM project_sessions WHERE project_id = ? ORDER BY session_date DESC LIMIT 3',
+      [args.projectId]
+    ) as { summary: string | null; session_date: string }[];
+
+    // Parse tech_stack — stored as JSON string or comma-separated
+    let techStack: string[] = [];
+    try {
+      techStack = JSON.parse(proj.tech_stack as string || '[]');
+    } catch {
+      techStack = String(proj.tech_stack || '').split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    const projectData = {
+      id: proj.id as number,
+      name: proj.name as string,
+      description: proj.description as string | null,
+      repo_path: proj.repo_path as string | null,
+      status: proj.status as string,
+      stage: proj.stage as string,
+      health_score: proj.health_score as number,
+      tech_stack: techStack,
+      github_repo: proj.github_repo as string | null,
+      github_ci_status: proj.github_ci_status as string | null,
+      github_open_prs: proj.github_open_prs as number | null,
+      revenue_model: proj.revenue_model as string | null,
+      mrr: proj.mrr as number | null,
+      main_blocker: proj.main_blocker as string | null,
+      next_action: proj.next_action as string | null,
+      category: proj.category as string | null,
+      decisions,
+      tasks,
+      sessions,
+    };
+
+    return generateMegaPrompt(projectData, args.action, args.extraContext);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROMPTS_GET_ACTIONS, () => {
+    return { groups: ACTION_GROUPS, labels: ACTION_LABELS };
   });
 }

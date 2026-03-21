@@ -279,4 +279,7 @@ export const IPC_CHANNELS = {
   REVENUE_CREATE_ENTRY: 'revenue:createEntry',
   REVENUE_DELETE_ENTRY: 'revenue:deleteEntry',
   REVENUE_UPDATE_PROJECT: 'revenue:updateProject',
+  // Prompt Engine
+  PROMPTS_GENERATE: 'prompts:generate',
+  PROMPTS_GET_ACTIONS: 'prompts:getActions',
 } as const;

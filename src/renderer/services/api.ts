@@ -280,6 +280,18 @@ export const batchGitStatus = (projects: { id: number; repo_path: string }[]) =>
 export const githubSyncAll = () => invoke(IPC_CHANNELS.GITHUB_SYNC_ALL) as Promise<{ synced: number; errors: number }>;
 export const githubSetToken = (token: string) => invoke(IPC_CHANNELS.GITHUB_SET_TOKEN, token) as Promise<{ ok: boolean }>;
 
+// Prompt Engine
+import type { PromptAction, ActionGroup } from '../../shared/prompt-templates';
+export type { PromptAction };
+export interface PromptActionsResponse {
+  groups: ActionGroup[];
+  labels: Record<PromptAction, string>;
+}
+export const generatePrompt = (args: { projectId: number; action: PromptAction; extraContext?: string }) =>
+  invoke(IPC_CHANNELS.PROMPTS_GENERATE, args) as Promise<string>;
+export const getPromptActions = () =>
+  invoke(IPC_CHANNELS.PROMPTS_GET_ACTIONS) as Promise<PromptActionsResponse>;
+
 // Revenue
 import type { RevenueEntry } from '../../shared/types';
 export const getRevenueEntries = () => invoke(IPC_CHANNELS.REVENUE_GET_ALL) as Promise<RevenueEntry[]>;

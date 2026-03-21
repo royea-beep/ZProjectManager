@@ -56,6 +56,8 @@ const ALLOWED_CHANNELS = new Set([
   'github:syncAll', 'github:setToken',
   // Revenue
   'revenue:getAll', 'revenue:createEntry', 'revenue:deleteEntry', 'revenue:updateProject',
+  // Prompt Engine
+  'prompts:generate', 'prompts:getActions',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

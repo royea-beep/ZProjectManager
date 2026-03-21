@@ -18,6 +18,7 @@ import QuickNotes from '../components/QuickNotes';
 import { STATUS_LABELS, STAGE_LABELS, PRIORITY_LABELS, TASK_STATUS_LABELS, PROJECT_TYPES, MOOD_LABELS, DESIGN_DIMENSIONS, DESIGN_STATUS_LABELS, DESIGN_STATUS_COLORS, WEB_RELEVANT_TYPES } from '../../shared/constants';
 import type { WebsiteDesignScore } from '../../shared/types';
 import { useToast } from '../components/Toast';
+import PromptPage from './PromptPage';
 
 const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt'];
 
@@ -168,7 +169,7 @@ export default function ProjectDetail() {
         {tab === 'Design' && <DesignTab projectId={projectId} projectType={project.type} />}
         {tab === 'Notes' && <QuickNotes projectId={projectId} />}
         {tab === 'Activity' && <ActivityTab projectId={projectId} />}
-        {tab === 'Prompt' && <PromptTab project={project} />}
+        {tab === 'Prompt' && <PromptPage project={project} onUpdate={update} />}
       </div>
 
       {/* Session Work Timer */}
@@ -2100,137 +2101,6 @@ function DesignDimensionEditor({ score, onSave }: { score: WebsiteDesignScore; o
         className="px-4 py-1.5 text-sm bg-accent-blue text-white rounded hover:bg-accent-blue/80">
         Save
       </button>
-    </div>
-  );
-}
-
-// ============ PROMPT GENERATOR TAB ============
-const QUICK_TASKS = [
-  { label: 'Fix bugs', task: 'Find and fix all bugs — TypeScript errors, runtime crashes, broken UI, edge cases' },
-  { label: 'Add feature', task: 'Add the following feature: [DESCRIBE FEATURE]\n\nRequirements:\n- [Req 1]\n- [Req 2]' },
-  { label: 'Audit codebase', task: 'Audit the entire codebase:\n1. TypeScript errors (npx tsc --noEmit)\n2. Security issues\n3. Performance problems\n4. Dead code\n5. Missing error handling\n\nReport findings, then fix all critical issues.' },
-  { label: 'Deploy', task: 'Prepare and deploy to production:\n1. Run build — fix any errors\n2. Check env vars\n3. Deploy to [YOUR PLATFORM]\n4. Verify live at [YOUR URL]' },
-  { label: 'Refactor', task: 'Refactor the codebase for clarity and maintainability:\n- Remove dead code\n- Extract reusable components\n- Improve naming\n- Keep all existing functionality working' },
-  { label: 'Write tests', task: 'Write comprehensive tests for all critical paths:\n- Unit tests for utility functions\n- Integration tests for API endpoints\n- E2E tests for key user flows' },
-];
-
-function generatePrompt(project: Project, customTask: string): string {
-  const techStack = project.tech_stack || 'Not specified';
-  const repoPath = project.repo_path || `C:\\Projects\\${project.name}`;
-
-  return `## ${project.name} — [Task Description]
-
-Yes, allow all edits in components
-Project: ${repoPath}
-
-## CONTEXT
-${project.description || `${project.name} — project being managed in ZProjectManager`}
-
-Stack: ${techStack}
-Status: ${project.status} | Stage: ${project.stage} | Health: ${project.health_score}/100
-${project.main_blocker ? `Current blocker: ${project.main_blocker}` : ''}
-${project.next_action ? `Next action: ${project.next_action}` : ''}
-
-## LOCKED DECISIONS
-- Stack: ${techStack}
-- Do not break existing working features
-- Run build/typecheck after every change
-
-## TASK
-${customTask || '[DESCRIBE YOUR TASK HERE]'}
-
-## CONSTRAINTS
-- Tech stack: ${techStack}
-- Path: ${repoPath}
-- Status must remain: ${project.status}
-
-## DEFINITION OF DONE
-- TypeScript: zero errors (npx tsc --noEmit)
-- Build: clean (npm run build)
-- All existing features still work
-- [ADD SPECIFIC VERIFICATION STEPS]
-
-Yes, allow all edits in components`.trim();
-}
-
-function PromptTab({ project }: { project: Project }) {
-  const [customTask, setCustomTask] = React.useState('');
-  const [copied, setCopied] = React.useState(false);
-
-  const prompt = generatePrompt(project, customTask);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(prompt);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-base font-semibold">Claude Code Prompt Generator</h3>
-          <p className="text-xs text-dark-muted mt-0.5">Generate a ready-to-paste MEGA PROMPT for this project</p>
-        </div>
-        <button
-          onClick={handleCopy}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-            copied
-              ? 'bg-accent-green text-white'
-              : 'bg-accent-blue text-white hover:bg-accent-blue/80'
-          }`}
-        >
-          {copied ? 'Copied!' : 'Copy Prompt'}
-        </button>
-      </div>
-
-      {/* Quick task buttons */}
-      <div className="mb-4">
-        <p className="text-xs text-dark-muted mb-2">Quick-fill task:</p>
-        <div className="flex flex-wrap gap-2">
-          {QUICK_TASKS.map(qt => (
-            <button
-              key={qt.label}
-              onClick={() => setCustomTask(qt.task)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-dark-muted hover:text-dark-text hover:border-accent-blue/40 transition-colors"
-            >
-              {qt.label}
-            </button>
-          ))}
-          <button
-            onClick={() => setCustomTask('')}
-            className="text-xs px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-dark-muted hover:text-red-400 hover:border-red-400/40 transition-colors"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
-
-      {/* Custom task input */}
-      <div className="mb-4">
-        <label className="text-xs text-dark-muted mb-1.5 block">Custom task description:</label>
-        <textarea
-          value={customTask}
-          onChange={e => setCustomTask(e.target.value)}
-          placeholder="Describe what you want Claude to do..."
-          rows={3}
-          className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-dark-text placeholder-dark-muted/50 focus:outline-none focus:border-accent-blue resize-none"
-        />
-      </div>
-
-      {/* Generated prompt preview */}
-      <div className="relative">
-        <label className="text-xs text-dark-muted mb-1.5 block">Generated prompt:</label>
-        <div
-          className="w-full bg-dark-bg border border-dark-border rounded-lg p-4 text-xs font-mono text-dark-text/80 whitespace-pre-wrap leading-relaxed select-all cursor-text"
-          style={{ maxHeight: '420px', overflowY: 'auto' }}
-          onClick={handleCopy}
-          title="Click to copy"
-        >
-          {prompt}
-        </div>
-        <p className="text-[10px] text-dark-muted mt-1">Click prompt to copy • Paste into Claude Code</p>
-      </div>
     </div>
   );
 }
