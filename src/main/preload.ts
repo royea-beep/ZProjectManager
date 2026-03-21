@@ -88,6 +88,8 @@ const ALLOWED_CHANNELS = new Set([
   'pipeline:classify-message',
   // Docs — working style
   'docs:generate-working-style', 'docs:deploy-working-style',
+  // Request Parser
+  'requests:parse', 'requests:save',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

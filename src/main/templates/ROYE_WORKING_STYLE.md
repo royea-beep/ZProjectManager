@@ -272,4 +272,24 @@ Q=2-4: long, many errors, unclear prompt
 **המטרה:** כל VAMOS prompt = Q≥8
 
 ---
+
+## Request Protocol — Never Miss a Request
+
+### When Roye writes multiple requests (Strategic AI rule):
+ALWAYS start response with:
+```
+הבנתי X דברים לעשות:
+1. [item 1]
+2. [item 2]
+...
+מתחיל עם 1. אם חסר משהו — תגיד.
+```
+
+### Roye shorthand:
+📋 at the start = complete task list, do not skip any item
+
+### ZProjectManager Request Parser:
+Dashboard → "Parse Requests" → paste long message → confirm all items → execute
+
+---
 *נוצר על ידי ZProjectManager | מעודכן: 2026-03-21 IST*

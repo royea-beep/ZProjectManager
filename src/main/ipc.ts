@@ -22,6 +22,7 @@ import { extractProjectParameters, parametersToDbRows, formatParamsAsContext } f
 import { runIntelligenceEngine, runCrossProjectAnalysis } from './intelligence-engine';
 import { loadMegaPrompts, getSessionStats, runPipeline, getLatestMegaPromptsFile } from './pipeline-reader';
 import { classifyMessage } from './context-classifier';
+import { extractRequests, generateConfirmationMessage } from './request-extractor';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -1802,6 +1803,27 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('pipeline:classify-message', (_e, text: string) => {
     return classifyMessage(text);
+  });
+
+  // ── REQUEST PARSER ──────────────────────────────────────────────────────────
+  ipcMain.handle('requests:parse', (_e, text: string) => {
+    const requests = extractRequests(text);
+    const confirmation = generateConfirmationMessage(requests);
+    return { requests, confirmation };
+  });
+
+  ipcMain.handle('requests:save', (_e, args: { projectId: number; requests: Array<{ text: string; priority: string; isConfirmed: boolean }> }) => {
+    const now = new Date().toISOString();
+    let saved = 0;
+    for (const req of args.requests) {
+      if (!req.isConfirmed) continue;
+      runInsert(
+        'INSERT INTO project_tasks (project_id, title, status, priority, created_at) VALUES (?,?,?,?,?)',
+        [args.projectId, req.text, 'todo', req.priority || 'medium', now]
+      );
+      saved++;
+    }
+    return { saved };
   });
 
   ipcMain.handle('pipeline:enhance-prompt', (_e, args: { prompt: string; phase: string }) => {

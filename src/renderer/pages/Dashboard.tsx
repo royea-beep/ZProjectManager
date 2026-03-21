@@ -13,6 +13,8 @@ import type { Suggestion, WeeklyDigest } from '../services/api';
 import { PROJECT_TYPES } from '../../shared/constants';
 import NextStepsWidget from '../components/NextStepsWidget';
 import { EmptyState } from '../components/EmptyState';
+import RequestParser from '../components/RequestParser';
+import type { ExtractedRequest } from '../components/RequestParser';
 
 const STATUS_FILTERS = ['all', 'stale', 'building', 'launched', 'paused', 'archived', 'idea', 'planning', 'testing'];
 
@@ -172,6 +174,8 @@ export default function Dashboard({ activeWorkspaceId = 0 }: { activeWorkspaceId
   }, []);
   const [searchParams, setSearchParams] = useSearchParams();
   const [showCreate, setShowCreate] = useState(() => searchParams.get('new') === '1');
+  const [parseInput, setParseInput] = useState('');
+  const [parsedRequests, setParsedRequests] = useState<ExtractedRequest[] | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Clear ?new=1 from URL when modal closes
@@ -389,6 +393,43 @@ export default function Dashboard({ activeWorkspaceId = 0 }: { activeWorkspaceId
 
       {/* Next 3 Steps */}
       <NextStepsWidget context="dashboard" projects={projects} />
+
+      {/* Parse Requests */}
+      <div className="mb-6 border-t border-dark-border pt-4">
+        <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-2">📋 Parse Requests</p>
+        <div className="flex gap-2">
+          <textarea
+            value={parseInput}
+            onChange={e => setParseInput(e.target.value)}
+            placeholder="הדבק כאן הודעה ארוכה עם מספר בקשות — אני אחלץ ואמספר אותן..."
+            rows={3}
+            className="flex-1 bg-dark-bg border border-dark-border rounded-xl px-3 py-2 text-xs text-dark-text placeholder-dark-muted/40 focus:outline-none focus:border-accent-blue resize-none"
+          />
+          <button
+            onClick={async () => {
+              if (!parseInput.trim()) return;
+              const result = await window.api.invoke('requests:parse', parseInput) as { requests: ExtractedRequest[]; confirmation: string };
+              setParsedRequests(result.requests);
+            }}
+            disabled={!parseInput.trim()}
+            className="text-xs px-4 rounded-xl bg-accent-blue/15 text-accent-blue hover:bg-accent-blue/25 transition-colors disabled:opacity-40 shrink-0"
+          >
+            📋 Parse
+          </button>
+        </div>
+      </div>
+
+      {parsedRequests && (
+        <RequestParser
+          requests={parsedRequests}
+          onConfirm={async (confirmed) => {
+            toast(`${confirmed.length} requests confirmed — saving as tasks...`, 'success');
+            setParsedRequests(null);
+            setParseInput('');
+          }}
+          onDismiss={() => setParsedRequests(null)}
+        />
+      )}
 
       {/* Weekly Digest */}
       {digest && <WeeklyDigestCard data={digest} />}
