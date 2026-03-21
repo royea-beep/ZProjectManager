@@ -9,6 +9,20 @@ interface WorkSummary {
   billing_rate: number;
 }
 
+function exportInvoicePdf(inv: Record<string, unknown>) {
+  const html = `<html><body style="font-family:sans-serif;padding:40px;color:#111">
+    <h1 style="margin-bottom:8px">Invoice ${inv.invoice_number || '#'}</h1>
+    <p style="color:#666;margin:4px 0">Client: ${inv.client_name}</p>
+    <p style="color:#666;margin:4px 0">Date: ${new Date(inv.issued_at as string).toLocaleDateString('he-IL')}</p>
+    <p style="color:#666;margin:4px 0">Hours: ${inv.total_hours}h × ₪${inv.billing_rate}/h</p>
+    <hr style="margin:20px 0">
+    <h2>Total: ₪${(inv.total_amount as number || 0).toLocaleString()}</h2>
+    <p style="color:#999;margin-top:40px;font-size:12px">Status: ${inv.status}</p>
+    </body></html>`;
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(html); win.print(); }
+}
+
 export default function BillingPage() {
   const { toast } = useToast();
   const [workspaces, setWorkspaces] = useState<any[]>([]);
@@ -206,6 +220,11 @@ export default function BillingPage() {
                         className="text-[10px] text-green-400 hover:underline"
                       >Mark paid</button>
                     )}
+                    <button
+                      onClick={() => exportInvoicePdf(inv as Record<string, unknown>)}
+                      className="text-[10px] text-dark-muted hover:text-dark-text"
+                      title="Export PDF"
+                    >📄</button>
                   </div>
                 </div>
               ))}

@@ -2029,6 +2029,34 @@ ${stats.stalledProjects.slice(0, 5).map((p: any) => `- ${p.name}`).join('\n') ||
     return generateSharedUtilsRecs(reports);
   });
 
+  // ── Auto-watch Claude Code sessions ──────────────────────────────────────
+  setTimeout(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const chokidar = require('chokidar') as { watch: (p: string, opts: Record<string, unknown>) => { on: (ev: string, cb: (p: string) => void) => void } };
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const os = require('os') as typeof import('os');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const nodePath = require('path') as typeof import('path');
+      const claudeDir = nodePath.join(os.homedir(), '.claude', 'projects');
+      if (!fs.existsSync(claudeDir)) return;
+      chokidar.watch(claudeDir, {
+        ignoreInitial: true,
+        persistent: false,
+        awaitWriteFinish: { stabilityThreshold: 3000 },
+      }).on('add', (filePath: string) => {
+        if (!filePath.endsWith('.jsonl')) return;
+        try {
+          const parts = filePath.split(nodePath.sep);
+          const projectDir = parts[parts.length - 2] || '';
+          const projectName = projectDir.replace(/^[^a-zA-Z]*/, '').split('-')[0];
+          console.log(`[session-watcher] New session: ${projectName} — ${filePath}`);
+        } catch { /* silent */ }
+      });
+      console.log('[session-watcher] Watching', claudeDir);
+    } catch { /* chokidar not installed, skip silently */ }
+  }, 10000);
+
   ipcMain.handle('pipeline:enhance-prompt', (_e, args: { prompt: string; phase: string }) => {
     const row = getOne('SELECT phases_json FROM mega_prompt_versions ORDER BY version DESC LIMIT 1', []) as { phases_json: string } | null;
     if (!row?.phases_json) return args.prompt;
