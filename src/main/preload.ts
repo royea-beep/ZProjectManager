@@ -69,6 +69,9 @@ const ALLOWED_CHANNELS = new Set([
   'params:getContext',
   // GPROMPT — Golden Prompts
   'golden:save', 'golden:getAll', 'golden:delete', 'golden:analyze',
+  // Docs Generators
+  'docs:generate-memory', 'docs:generate-iron-rules',
+  'docs:generate-checklist', 'docs:generate-vamos',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

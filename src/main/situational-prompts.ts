@@ -1,6 +1,8 @@
 export type Situation =
   | 'session-start'
   | 'session-end'
+  | 'session-start-vamos'
+  | 'end-of-session-vamos'
   | 'terminal-crashed'
   | 'context-window-full'
   | 'handoff-between-bots'
@@ -215,6 +217,138 @@ Committed: [commit hash]
 TypeScript: clean/[X errors]
 Next session starts at: [exact point]
 File: sessions/[filename]"
+
+Yes, allow all edits in components`;
+    },
+  },
+
+  {
+    id: 'session-start-vamos',
+    title: 'Start Session (VAMOS)',
+    emoji: '🚀',
+    description: 'Reads MEMORY.md + Iron Rules, creates session log, confirms state',
+    category: 'workflow',
+    contextFields: [
+      { key: 'projectName', label: 'Project name', placeholder: '9Soccer', required: true },
+      { key: 'projectPath', label: 'Project path', placeholder: 'C:/Projects/9soccer', required: true },
+    ],
+    prompt: (ctx) => {
+      const name = c(ctx, 'projectName', '[PROJECT]');
+      const path = c(ctx, 'projectPath', `C:/Projects/${name.toLowerCase()}`);
+      return `## VAMOS SESSION START — ${name}
+
+Yes, allow all edits in components
+Project: ${path}
+
+## FIRST ACTIONS (in this exact order)
+\`\`\`bash
+cd ${path}
+
+# 1. Read project state
+cat MEMORY.md || echo "⚠️ MEMORY.md not found — generate it in ZProjectManager → Docs tab"
+cat IRON_RULES.md || echo "⚠️ IRON_RULES.md not found — generate it in ZProjectManager → Docs tab"
+
+# 2. Create session file
+TIMESTAMP=$(date +%H-%M)
+mkdir -p docs/sessions docs/prompts
+SESSION_FILE="docs/sessions/SESSION-$(date +%Y-%m-%d)-\${TIMESTAMP}.md"
+echo "# ${name} Session — $(date '+%Y-%m-%d %H:%M')" > "\$SESSION_FILE"
+
+# 3. Check current health
+git log --oneline -5
+git status
+npx tsc --noEmit 2>&1 | tail -3
+\`\`\`
+
+## CONFIRM STATE LOADED
+Output exactly:
+"✅ VAMOS SESSION STARTED
+Project: ${name}
+Last commit: [hash + message]
+MEMORY.md: [read / not found]
+IRON_RULES.md: [read / not found]
+TypeScript: [clean / X errors]
+Session file: docs/sessions/SESSION-[date]-[time].md
+Ready for: [what Roye asked]"
+
+Then wait for instructions.
+
+Yes, allow all edits in components`;
+    },
+  },
+
+  {
+    id: 'end-of-session-vamos',
+    title: 'End Session (VAMOS)',
+    emoji: '🌙',
+    description: 'Updates MEMORY.md, writes session log, commits, pushes',
+    category: 'workflow',
+    contextFields: [
+      { key: 'projectName', label: 'Project name', placeholder: '9Soccer', required: true },
+      { key: 'projectPath', label: 'Project path', placeholder: 'C:/Projects/9soccer', required: true },
+      { key: 'whatWasDone', label: 'What was done this session', placeholder: 'Fixed auth bug, deployed to TestFlight', required: false },
+      { key: 'nextPriority', label: 'Next priority', placeholder: 'Fix crash in Showdown mode', required: false },
+    ],
+    prompt: (ctx) => {
+      const name = c(ctx, 'projectName', '[PROJECT]');
+      const path = c(ctx, 'projectPath', `C:/Projects/${name.toLowerCase()}`);
+      const done = c(ctx, 'whatWasDone', '[fill in]');
+      const next = c(ctx, 'nextPriority', '[fill in]');
+      return `## VAMOS SESSION END — ${name}
+
+Yes, allow all edits in components
+Project: ${path}
+
+## STEP 1 — Verify clean state
+\`\`\`bash
+cd ${path}
+npx tsc --noEmit 2>&1 | tail -3
+npm run build 2>&1 | tail -3
+git status
+\`\`\`
+
+## STEP 2 — Update MEMORY.md
+Read current MEMORY.md.
+Update these sections:
+- **Date** → today IST
+- **Last Session** → what was done: ${done}
+- **Next Priority** → ${next}
+- **CI Status** → current status from git + build
+Keep all other sections intact.
+
+## STEP 3 — Write session log
+\`\`\`bash
+SESSION_FILE=$(ls docs/sessions/ 2>/dev/null | grep $(date +%Y-%m-%d) | tail -1)
+if [ -n "$SESSION_FILE" ]; then
+  cat >> "docs/sessions/$SESSION_FILE" << 'SESSIONEOF'
+
+## What was done
+${done}
+
+## Build status
+- TypeScript: [clean / X errors]
+- Build: [clean / failing]
+
+## Next session starts at
+${next}
+SESSIONEOF
+fi
+\`\`\`
+
+## STEP 4 — Commit everything
+\`\`\`bash
+git add -A
+git commit -m "chore: session end $(date +%Y-%m-%d) — ${done.slice(0, 50)}"
+git push origin master
+\`\`\`
+
+## FINAL OUTPUT
+"🌙 SESSION CLOSED
+Time: $(date '+%Y-%m-%d %H:%M') IST
+MEMORY.md: updated ✅
+Session log: saved ✅
+Pushed: [commit hash]
+Next: ${next}"
 
 Yes, allow all edits in components`;
     },

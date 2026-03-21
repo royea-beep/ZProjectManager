@@ -439,6 +439,16 @@ export const deleteGoldenPrompt = (id: string) =>
 export const analyzeGoldenPrompts = (projectId?: number) =>
   invoke(IPC_CHANNELS.GOLDEN_ANALYZE, projectId) as Promise<GoldenAnalysis>;
 
+// Docs Generators
+export const generateMemoryMdDoc = (projectId: number) =>
+  invoke('docs:generate-memory', projectId) as Promise<string>;
+export const generateIronRulesMdDoc = (projectId: number) =>
+  invoke('docs:generate-iron-rules', projectId) as Promise<string>;
+export const generatePreLaunchChecklistDoc = (projectId: number) =>
+  invoke('docs:generate-checklist', projectId) as Promise<string>;
+export const generateVamsosSprintDoc = (args: { projectId: number; sprintName: string; agents: Array<{ name: string; task: string }> }) =>
+  invoke('docs:generate-vamos', args) as Promise<string>;
+
 // Revenue
 import type { RevenueEntry } from '../../shared/types';
 export const getRevenueEntries = () => invoke(IPC_CHANNELS.REVENUE_GET_ALL) as Promise<RevenueEntry[]>;

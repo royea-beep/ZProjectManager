@@ -22,7 +22,7 @@ import PromptPage from './PromptPage';
 import NextStepsWidget from '../components/NextStepsWidget';
 import GPromptTab from './GPromptTab';
 
-const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt', 'GPROMPT', 'Import'];
+const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt', 'GPROMPT', 'Import', 'Docs'];
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -174,6 +174,7 @@ export default function ProjectDetail() {
         {tab === 'Prompt' && <PromptPage project={project} onUpdate={update} />}
         {tab === 'GPROMPT' && <GPromptTab project={project} />}
         {tab === 'Import' && <ImportTab projectId={projectId} onImported={refresh} />}
+        {tab === 'Docs' && <DocsTab projectId={projectId} project={project} />}
       </div>
 
       {/* Session Work Timer */}
@@ -2252,6 +2253,132 @@ function ActivityTab({ projectId }: { projectId: number }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── DOCS TAB ────────────────────────────────────────────────────────────────
+
+const DOCS_LIST = [
+  { id: 'memory' as const, label: 'MEMORY.md', emoji: '🧠', filename: 'MEMORY.md', desc: 'Bot reads this at session start — version, CI, known issues, next steps' },
+  { id: 'iron-rules' as const, label: 'IRON_RULES.md', emoji: '⚙️', filename: 'IRON_RULES.md', desc: 'Rules that NEVER break — auto-tailored to category and stage' },
+  { id: 'checklist' as const, label: 'Pre-Launch Checklist', emoji: '🚀', filename: 'PRE_LAUNCH_CHECKLIST.md', desc: 'Complete before any launch — technical, content, monitoring' },
+  { id: 'vamos' as const, label: 'VAMOS Sprint', emoji: '⚡', filename: 'VAMOS-SPRINT.md', desc: 'Full sprint prompt template with FIRST ACTIONS, agents, deploy, session log' },
+];
+
+type DocId = typeof DOCS_LIST[number]['id'];
+
+function DocsTab({ projectId, project }: { projectId: number; project: Project }) {
+  const [activeDoc, setActiveDoc] = React.useState<DocId | null>(null);
+  const [content, setContent] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const { toast } = useToast();
+
+  const generate = async (id: DocId) => {
+    setActiveDoc(id);
+    setLoading(true);
+    setContent('');
+    try {
+      let result = '';
+      if (id === 'memory') result = await api.generateMemoryMdDoc(projectId);
+      else if (id === 'iron-rules') result = await api.generateIronRulesMdDoc(projectId);
+      else if (id === 'checklist') result = await api.generatePreLaunchChecklistDoc(projectId);
+      else if (id === 'vamos') result = await api.generateVamsosSprintDoc({
+        projectId,
+        sprintName: 'Sprint Name',
+        agents: [
+          { name: 'Audit', task: '[describe what to audit]' },
+          { name: 'Fix', task: '[describe what to fix]' },
+        ],
+      });
+      setContent(typeof result === 'string' ? result : JSON.stringify(result));
+    } catch {
+      toast('Generation failed', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast('Copied — paste into a file in your project', 'success');
+  };
+
+  const activeDocMeta = DOCS_LIST.find(d => d.id === activeDoc);
+
+  return (
+    <div className="flex gap-4" style={{ minHeight: 400 }}>
+      {/* Left: doc picker */}
+      <div className="w-52 shrink-0 space-y-2">
+        <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-3">Generate docs</p>
+        {DOCS_LIST.map(doc => (
+          <button
+            key={doc.id}
+            onClick={() => generate(doc.id)}
+            className={`w-full text-left p-3 rounded-lg border transition-all ${
+              activeDoc === doc.id
+                ? 'border-accent-blue/40 bg-accent-blue/10'
+                : 'border-dark-border bg-dark-bg hover:bg-dark-hover'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <span>{doc.emoji}</span>
+              <span className={`text-xs font-medium ${activeDoc === doc.id ? 'text-accent-blue' : 'text-dark-text'}`}>
+                {doc.label}
+              </span>
+            </div>
+            <p className="text-[10px] text-dark-muted leading-relaxed">{doc.desc}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Right: generated content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {loading && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-sm text-dark-muted animate-pulse">Generating...</div>
+          </div>
+        )}
+
+        {!content && !loading && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center border border-dashed border-dark-border rounded-xl p-8">
+            <div className="text-3xl mb-2">📄</div>
+            <p className="text-sm text-dark-text mb-1">Pick a document to generate</p>
+            <p className="text-xs text-dark-muted max-w-xs">
+              Generated from this project's DB — version, tasks, sessions, category, stage
+            </p>
+          </div>
+        )}
+
+        {content && !loading && (
+          <>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-dark-muted font-mono">
+                Save as <span className="text-accent-blue">{activeDocMeta?.filename}</span> in project root
+              </p>
+              <button
+                onClick={copy}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                  copied
+                    ? 'bg-accent-green/15 border-accent-green/40 text-accent-green'
+                    : 'bg-dark-surface border-dark-border text-dark-text hover:border-accent-blue/40'
+                }`}
+              >
+                {copied ? '✅ Copied' : '📋 Copy'}
+              </button>
+            </div>
+            <div className="flex-1 bg-dark-bg border border-dark-border rounded-xl p-4 text-xs font-mono text-dark-text/85 whitespace-pre-wrap leading-relaxed overflow-y-auto max-h-[500px]">
+              {content}
+            </div>
+            <p className="text-[10px] text-dark-muted mt-1.5">
+              Copy → create file in project root → git commit → bot reads it every session
+            </p>
+          </>
+        )}
+      </div>
     </div>
   );
 }

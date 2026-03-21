@@ -703,3 +703,348 @@ export function getRecommendedActions(project: {
     urgency,
   };
 }
+
+// ─── MEMORY.md GENERATOR ────────────────────────────────────────────────────
+
+export function generateMemoryMd(project: {
+  name: string;
+  version?: string;
+  description?: string;
+  tech_stack?: string | string[];
+  stage: string;
+  category: string;
+  health_score: number;
+  github_repo?: string | null;
+  github_ci_status?: string | null;
+  github_open_prs?: number | null;
+  mrr?: number | null;
+  revenue_model?: string | null;
+  main_blocker?: string | null;
+  next_action?: string | null;
+  repo_path?: string | null;
+  bundleId?: string | null;
+}, sessions: Array<{ summary: string | null; created_at: string }>, tasks: Array<{ title: string; status: string; priority: string }>): string {
+  const today = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' });
+  const isMobile = project.category === 'mobile-app' || project.category === 'game';
+  const isSaaS = project.category === 'web-saas' || project.category === 'ai-tool';
+
+  const techStack = Array.isArray(project.tech_stack)
+    ? project.tech_stack.join(', ')
+    : (project.tech_stack || 'not set');
+
+  const openTasks = tasks.filter(t => t.status !== 'done');
+  const blockedTasks = tasks.filter(t => t.status === 'blocked');
+  const highTasks = tasks.filter(t => (t.priority === 'high' || t.priority === 'critical') && t.status !== 'done');
+
+  const lastSession = sessions[0];
+
+  const lines: string[] = [
+    `# ${project.name} MEMORY`,
+    `**Version:** ${project.version || 'unknown'} | **Date:** ${today} IST`,
+    `**Stage:** ${project.stage} | **Health:** ${project.health_score}/100`,
+    '',
+    '## Stack',
+    techStack,
+  ];
+  if (project.github_repo) lines.push(`Repo: https://github.com/${project.github_repo}`);
+  if (project.repo_path) lines.push(`Local: ${project.repo_path}`);
+  if (project.bundleId) lines.push(`Bundle: ${project.bundleId}`);
+
+  lines.push('', '## CI Status');
+  if (project.github_ci_status === 'passing') lines.push('- CI: ✅ passing');
+  else if (project.github_ci_status === 'failing') lines.push('- CI: ❌ FAILING — fix immediately');
+  else lines.push('- CI: unknown');
+  if (project.github_open_prs) lines.push(`- Open PRs: ${project.github_open_prs}`);
+  if (isMobile) lines.push('- TestFlight: check ASC');
+  if (isSaaS && project.github_repo) lines.push(`- Vercel: https://${project.github_repo.split('/')[1]}.vercel.app/api/status`);
+
+  lines.push('', '## Revenue');
+  lines.push(`${project.revenue_model || 'pre-revenue'}${project.mrr ? ` | MRR: ₪${project.mrr}` : ''}`);
+
+  lines.push('', '## Last Session');
+  lines.push(lastSession ? `${lastSession.created_at.slice(0, 10)}: ${lastSession.summary || 'no summary'}` : 'No sessions recorded yet');
+
+  lines.push('', '## Known Issues');
+  if (blockedTasks.length > 0) {
+    for (const t of blockedTasks) lines.push(`- ⚠️ ${t.title}`);
+  } else {
+    lines.push('- None recorded');
+  }
+
+  lines.push('', '## Next Priority');
+  if (highTasks.length > 0) {
+    highTasks.slice(0, 3).forEach((t, i) => lines.push(`${i + 1}. ${t.title}`));
+  } else {
+    lines.push(project.next_action || 'Not set');
+  }
+  if (project.main_blocker) lines.push(`\nBLOCKER: ${project.main_blocker}`);
+
+  lines.push('', `## Open Tasks (${openTasks.length})`);
+  if (openTasks.length > 0) {
+    openTasks.slice(0, 5).forEach(t => lines.push(`- [${(t.priority || 'med').toUpperCase()}] ${t.title}`));
+  } else {
+    lines.push('None');
+  }
+
+  return lines.join('\n');
+}
+
+// ─── IRON_RULES.md GENERATOR ─────────────────────────────────────────────────
+
+export function generateIronRulesMd(project: {
+  name: string;
+  category: string;
+  stage: string;
+}): string {
+  const universalRules = [
+    'NEVER delete files — move to _archive/ only',
+    'NEVER give Roye commands to run — fix autonomously',
+    'ALWAYS tsc --noEmit before commit (0 errors required)',
+    'ALWAYS end session with session-summary + MEMORY.md update',
+    'ALL timestamps = Israel time (IST, UTC+3)',
+    'ALL prompt files = .md with date+time IST in filename (PROJ-TASK-YYYY-MM-DD-HHMM.md)',
+    'NEVER use mock/static/placeholder data — always wire to real DB',
+    'NEVER write TODO comments — fix it or ask Roye',
+  ];
+
+  const categoryRules: Record<string, string[]> = {
+    'mobile-app': [
+      'NEVER push to TestFlight without explicit "אשר" from Roye',
+      'NEVER touch p12/cert manually — EAS remote ONLY',
+      'NEVER set iOS build number manually — EAS autoIncrement only',
+      'Deploy = EAS (iOS) + Vercel (web) — never manual Xcode',
+    ],
+    'game': [
+      'NEVER push to TestFlight without explicit "אשר" from Roye',
+      'NEVER touch p12/cert manually — EAS remote ONLY',
+      'NEVER set iOS build number manually — EAS autoIncrement only',
+      'Game quality before monetization — engagement first',
+      'NO betting/gambling mechanics — child audience',
+    ],
+    'web-saas': [
+      'NEVER use Stripe — Israeli merchant = Payplus only',
+      'NEVER expose service_role key in client code',
+      'NEVER run prisma db push if unknown tables exist in DB',
+      'ALWAYS ALTER TABLE — never DROP/TRUNCATE with real data',
+      'Deploy = Vercel (npx vercel --prod --yes)',
+    ],
+    'ai-tool': [
+      'NEVER use Stripe — Israeli merchant = Payplus only',
+      'NEVER expose service_role key in client code',
+      'ALWAYS validate API key before calling any AI model',
+      'Deploy = Vercel (npx vercel --prod --yes)',
+    ],
+    'api-backend': [
+      'NEVER run prisma db push without checking existing tables first',
+      'ALWAYS add rate limiting to auth endpoints',
+      'ALWAYS validate JWT on protected routes',
+      'Deploy = Railway (railway up --detach)',
+    ],
+    'desktop-app': [
+      'NEVER expose IPC channels without preload whitelist',
+      'NEVER use require() in renderer — only through preload bridge',
+      'ALWAYS auto-backup DB before schema changes',
+    ],
+    'internal-tool': [
+      'NEVER expose admin routes without auth',
+      'ALWAYS require ADMIN_KEY for sensitive operations',
+    ],
+  };
+
+  const stageRules: Record<string, string[]> = {
+    'testflight': [
+      'CRASH REPORTS are #1 priority — check logs before anything else',
+      'DO NOT add new features — fix bugs from testers first',
+    ],
+    'pre-launch': [
+      'FREEZE feature development — only bug fixes and checklist items',
+      'DO NOT submit to App Store without Roye approval',
+    ],
+    'live': [
+      'PRODUCTION INCIDENT = drop everything, fix immediately',
+      'ROLLBACK if unsure — git revert HEAD + deploy',
+    ],
+  };
+
+  const rules = [
+    ...universalRules,
+    ...(categoryRules[project.category] || []),
+    ...(stageRules[project.stage] || []),
+  ];
+
+  return [
+    `# ${project.name} — Iron Rules`,
+    '**NEVER BREAK THESE. Read before every session.**',
+    '',
+    ...rules.map((r, i) => `${i + 1}. ${r}`),
+    '',
+    '---',
+    '*Generated by ZProjectManager — update if project context changes.*',
+  ].join('\n');
+}
+
+// ─── PRE-LAUNCH CHECKLIST GENERATOR ──────────────────────────────────────────
+
+export function generatePreLaunchChecklist(project: {
+  name: string;
+  category: string;
+}): string {
+  const today = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' });
+  const isMobile = project.category === 'mobile-app' || project.category === 'game';
+  const isSaaS = project.category === 'web-saas' || project.category === 'ai-tool';
+
+  const technical = [
+    'TypeScript: 0 errors (npx tsc --noEmit)',
+    'Build: clean (npm run build)',
+    'All env vars set in production',
+    'Error monitoring wired (Sentry / log-error Edge Function)',
+    '/api/status returns 200',
+    'robots.txt + sitemap',
+    'Rate limiting on auth routes',
+    'No service_role key in client code',
+    'RLS enabled on all Supabase tables',
+  ];
+
+  const mobileExtra = [
+    'Push notifications: end-to-end tested on physical device',
+    'Cert valid + not expiring within 90 days',
+    'Build number: correct (EAS autoIncrement)',
+    'All game modes tested on physical device',
+    'Crash-free rate: >99% on TestFlight',
+    'Tested by minimum 3 real users on TestFlight',
+    'App Store screenshots: 6 sizes for iPhone 6.9"',
+    'Privacy policy URL: live',
+    'Support URL: live',
+    'Age rating: correct',
+    'App Store description: reviewed and approved',
+  ];
+
+  const saasExtra = [
+    'Payment processor wired (Payplus)',
+    'Email/notification flow tested end-to-end',
+    'Pricing page accurate',
+    'Cancellation/refund flow works',
+    'GDPR/privacy compliance checked',
+  ];
+
+  const content = [
+    'All user-facing text reviewed (no lorem ipsum)',
+    'Hebrew RTL layout verified',
+    'OG image for social sharing',
+    'SEO meta tags (title, description)',
+    'JSON-LD structured data',
+    'Favicon + app icon correct',
+  ];
+
+  const monitoring = [
+    'Sentry or error logging: connected and tested',
+    'BugReporter: wired and sending to Supabase',
+    'Feedback widget: active',
+    'GitHub Actions: all workflows green',
+    'Alert on down: verified',
+  ];
+
+  const lines: string[] = [
+    `# ${project.name} — Pre-Launch Checklist`,
+    `**Generated:** ${today} IST`,
+    '**Complete ALL items before launch.**',
+    '',
+    '## Technical',
+    ...technical.map(t => `- [ ] ${t}`),
+  ];
+
+  if (isMobile) {
+    lines.push('', '## Mobile / App Store', ...mobileExtra.map(t => `- [ ] ${t}`));
+  }
+  if (isSaaS) {
+    lines.push('', '## SaaS / Business', ...saasExtra.map(t => `- [ ] ${t}`));
+  }
+
+  lines.push(
+    '', '## Content & UX',
+    ...content.map(t => `- [ ] ${t}`),
+    '', '## Monitoring',
+    ...monitoring.map(t => `- [ ] ${t}`),
+    '', '---',
+    '**Rule:** If any item is ❌ — do not launch. Fix first.',
+  );
+
+  return lines.join('\n');
+}
+
+// ─── VAMOS SPRINT TEMPLATE ───────────────────────────────────────────────────
+
+export function generateVamosSprint(project: {
+  name: string;
+  repo_path?: string | null;
+  version?: string | null;
+  tech_stack?: string | string[] | null;
+  stage: string;
+  category: string;
+}, sprintName: string, agents: Array<{ name: string; task: string }>): string {
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const timeStr = now.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour12: false, hour: '2-digit', minute: '2-digit' }).replace(':', '');
+
+  const techStack = Array.isArray(project.tech_stack)
+    ? project.tech_stack.join(' + ')
+    : (project.tech_stack || 'full-stack');
+
+  const isMobile = project.category === 'mobile-app' || project.category === 'game';
+  const projectPath = project.repo_path || `C:/Projects/${project.name.toLowerCase()}`;
+  const deployCmd = isMobile
+    ? 'npx tsc --noEmit && npx vitest run && git push (EAS auto-deploys)'
+    : 'npx tsc --noEmit && npm run build && git add -A && git commit -m "feat: ..." && git push && npx vercel --prod --yes';
+
+  const agentBlocks = agents.map((a, i) =>
+    `## AGENT ${i + 1} — ${a.name}\n${a.task}`
+  ).join('\n\n');
+
+  return `# VAMOS MEGA PROMPT — ${sprintName}
+**Project:** ${project.name} | **Version:** ${project.version || 'unknown'} | **Date:** ${dateStr}-${timeStr} IST
+
+Yes, allow all edits in components
+Project path: ${projectPath}
+
+## ROLE
+Senior ${techStack} developer managing ${project.name}.
+
+## FIRST ACTIONS
+\`\`\`bash
+cd ${projectPath}
+cat MEMORY.md
+cat IRON_RULES.md
+TIMESTAMP=$(date +%H-%M)
+mkdir -p docs/sessions docs/prompts
+echo "# ${project.name} Session — $(date '+%Y-%m-%d %H:%M')" > "docs/sessions/SESSION-$(date +%Y-%m-%d)-\${TIMESTAMP}.md"
+\`\`\`
+
+## CONTEXT
+[מה קרה, מה הביא לsprint הזה, evidence]
+
+${agentBlocks}
+
+## AGENT ${agents.length + 1} — Deploy & Verify
+\`\`\`bash
+${deployCmd}
+\`\`\`
+
+## SUCCESS CRITERIA
+- [ ] TypeScript: 0 errors
+- [ ] Build: clean
+- [ ] [specific criteria for this sprint]
+
+## ON COMPLETION
+\`\`\`bash
+# Update MEMORY.md with today's changes
+# Write session summary to docs/sessions/SESSION-\${date}-\${TIMESTAMP}.md
+git add -A
+git commit -m "chore: update MEMORY.md + session log"
+git push
+\`\`\`
+
+## MANUAL_TASKS
+(ריק — הבוט עושה הכל. אם יש כאן משהו — זו כשל בתכנון)
+
+Yes, allow all edits in components`;
+}

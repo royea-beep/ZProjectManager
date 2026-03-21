@@ -10,7 +10,7 @@ import { detectSessionFromGit, getProjectGitStatus, calculateAutoHealth, fetchRe
 import { detectPatterns } from './pattern-detector';
 import { runBackup, getBackupList, getLastBackupTime, restoreBackup, startAutoBackup, getBackupDir_public } from './auto-backup';
 import { generateWeeklyDigest } from './digest';
-import { generateMegaPrompt, getRecommendedActions } from './prompt-engine';
+import { generateMegaPrompt, getRecommendedActions, generateMemoryMd, generateIronRulesMd, generatePreLaunchChecklist, generateVamosSprint } from './prompt-engine';
 import { ACTION_GROUPS, ACTION_LABELS } from '../shared/prompt-templates';
 import type { PromptAction } from '../shared/prompt-templates';
 import { SITUATIONAL_PROMPTS, getSituationalPrompt } from './situational-prompts';
@@ -1471,5 +1471,65 @@ export function registerIpcHandlers(): void {
         ? 'No golden prompts yet. Star your best prompts to build a collection.'
         : `Your best prompts are for: ${topActions.map(([a]) => a).join(', ')}. Focus here for highest quality.`,
     };
+  });
+
+  // ---- DOCS GENERATORS ----
+  ipcMain.handle('docs:generate-memory', (_e, projectId: number) => {
+    const project = getOne('SELECT * FROM projects WHERE id = ?', [projectId]) as Record<string, unknown> | null;
+    if (!project) return { error: 'Project not found' };
+    const sessions = getAll(
+      'SELECT summary, created_at FROM project_sessions WHERE project_id = ? ORDER BY created_at DESC LIMIT 5',
+      [projectId]
+    ) as Array<{ summary: string | null; created_at: string }>;
+    const tasks = getAll(
+      'SELECT title, status, priority FROM project_tasks WHERE project_id = ? ORDER BY CASE priority WHEN \'critical\' THEN 0 WHEN \'high\' THEN 1 WHEN \'medium\' THEN 2 WHEN \'low\' THEN 3 END',
+      [projectId]
+    ) as Array<{ title: string; status: string; priority: string }>;
+    return generateMemoryMd({
+      name: project.name as string,
+      tech_stack: project.tech_stack as string,
+      stage: project.stage as string,
+      category: project.category as string,
+      health_score: project.health_score as number,
+      github_repo: project.github_repo as string | null,
+      github_ci_status: project.github_ci_status as string | null,
+      github_open_prs: project.github_open_prs as number | null,
+      mrr: project.mrr as number | null,
+      revenue_model: project.revenue_model as string | null,
+      main_blocker: project.main_blocker as string | null,
+      next_action: project.next_action as string | null,
+      repo_path: project.repo_path as string | null,
+    }, sessions, tasks);
+  });
+
+  ipcMain.handle('docs:generate-iron-rules', (_e, projectId: number) => {
+    const project = getOne('SELECT name, category, stage FROM projects WHERE id = ?', [projectId]) as Record<string, unknown> | null;
+    if (!project) return { error: 'Project not found' };
+    return generateIronRulesMd({
+      name: project.name as string,
+      category: project.category as string,
+      stage: project.stage as string,
+    });
+  });
+
+  ipcMain.handle('docs:generate-checklist', (_e, projectId: number) => {
+    const project = getOne('SELECT name, category FROM projects WHERE id = ?', [projectId]) as Record<string, unknown> | null;
+    if (!project) return { error: 'Project not found' };
+    return generatePreLaunchChecklist({
+      name: project.name as string,
+      category: project.category as string,
+    });
+  });
+
+  ipcMain.handle('docs:generate-vamos', (_e, args: { projectId: number; sprintName: string; agents: Array<{ name: string; task: string }> }) => {
+    const project = getOne('SELECT * FROM projects WHERE id = ?', [args.projectId]) as Record<string, unknown> | null;
+    if (!project) return { error: 'Project not found' };
+    return generateVamosSprint({
+      name: project.name as string,
+      repo_path: project.repo_path as string | null,
+      tech_stack: project.tech_stack as string | null,
+      stage: project.stage as string,
+      category: project.category as string,
+    }, args.sprintName, args.agents);
   });
 }
