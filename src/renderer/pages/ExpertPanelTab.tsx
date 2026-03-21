@@ -91,7 +91,7 @@ function ExpertCard({ opinion }: { opinion: ExpertOpinion }) {
 
 export default function ExpertPanelTab({ project }: Props) {
   const [panels, setPanels] = useState<PanelSummary[]>([]);
-  const [selectedPanel, setSelectedPanel] = useState<ExpertPanelResult | null>(null);
+  const [selectedPanel, setSelectedPanel] = useState<(ExpertPanelResult & { _fromCache?: boolean; _cachedAt?: string }) | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
@@ -128,7 +128,7 @@ export default function ExpertPanelTab({ project }: Props) {
     setActiveTab('history');
   }
 
-  async function handleRunPanel() {
+  async function handleRunPanel(forceRefresh = false) {
     if (!taskDesc.trim()) { setError('Enter a task description'); return; }
     setError('');
     setRunning(true);
@@ -137,7 +137,8 @@ export default function ExpertPanelTab({ project }: Props) {
         projectId: project.id,
         action,
         taskDescription: taskDesc.trim(),
-      }) as ExpertPanelResult;
+        forceRefresh,
+      }) as ExpertPanelResult & { _fromCache?: boolean; _cachedAt?: string };
       await loadPanels();
       setSelectedPanel(panel);
       setActiveTab('history');
@@ -204,7 +205,7 @@ export default function ExpertPanelTab({ project }: Props) {
           {error && <p className="text-xs text-red-400">{error}</p>}
 
           <button
-            onClick={handleRunPanel}
+            onClick={() => handleRunPanel(false)}
             disabled={running}
             className="w-full px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
@@ -269,6 +270,13 @@ export default function ExpertPanelTab({ project }: Props) {
           {/* Selected panel result */}
           {selectedPanel && (
             <div className="space-y-4">
+              {/* Cache indicator */}
+              {selectedPanel._fromCache && (
+                <div className="flex items-center gap-2 text-[10px] text-dark-muted">
+                  <span>⚡ From cache ({selectedPanel._cachedAt ? new Date(selectedPanel._cachedAt).toLocaleTimeString('he-IL') : ''})</span>
+                  <button onClick={() => handleRunPanel(true)} className="text-accent-blue hover:underline">Refresh</button>
+                </div>
+              )}
               {/* Summary header */}
               <div className="bg-dark-surface border border-dark-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">

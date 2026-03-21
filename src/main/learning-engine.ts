@@ -271,6 +271,30 @@ export function analyzeAllProjects(projects: Array<{ name: string; repo_path: st
     .sort((a, b) => a.overallScore - b.overallScore);
 }
 
+// ── Async + incremental cache (10-minute TTL) ─────────────────────────────
+const scanCache = new Map<string, { timestamp: number; result: ProjectQualityReport }>();
+
+export async function analyzeProjectAsync(projectName: string, repoPath: string, force = false): Promise<ProjectQualityReport> {
+  const cached = scanCache.get(repoPath);
+  if (!force && cached && Date.now() - cached.timestamp < 10 * 60 * 1000) {
+    return cached.result;
+  }
+  const result = await new Promise<ProjectQualityReport>((resolve) => {
+    setImmediate(() => resolve(analyzeProject(projectName, repoPath)));
+  });
+  scanCache.set(repoPath, { timestamp: Date.now(), result });
+  return result;
+}
+
+export async function analyzeAllProjectsAsync(projects: Array<{ name: string; repo_path: string | null; status: string }>): Promise<ProjectQualityReport[]> {
+  const results = await Promise.all(
+    projects
+      .filter(p => p.repo_path && p.status !== 'archived')
+      .map(p => analyzeProjectAsync(p.name, p.repo_path!))
+  );
+  return results.sort((a, b) => a.overallScore - b.overallScore);
+}
+
 export function generateSharedUtilsRecs(reports: ProjectQualityReport[]): Array<{
   project: string;
   util: string;

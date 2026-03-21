@@ -30,6 +30,7 @@ export default function LearningEnginePage() {
   const [reports, setReports] = useState<ProjectQualityReport[]>([]);
   const [recs, setRecs] = useState<SharedUtilRec[]>([]);
   const [loading, setLoading] = useState(false);
+  const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'critical' | 'high' | 'duplicate' | 'security'>('all');
   const [activeTab, setActiveTab] = useState<'scores' | 'issues' | 'shared-utils'>('scores');
@@ -43,6 +44,7 @@ export default function LearningEnginePage() {
       ]);
       setReports(r || []);
       setRecs(rec || []);
+      setLastScanned(new Date().toLocaleTimeString('he-IL'));
     } finally {
       setLoading(false);
     }
@@ -81,6 +83,7 @@ export default function LearningEnginePage() {
               Code quality · Shared utils · Continuous improvement
               {criticalCount > 0 && <span className="text-red-400 ml-2">· {criticalCount} critical</span>}
               {totalSavings > 0 && <span className="text-green-400 ml-2">· {totalSavings} lines to save</span>}
+              {lastScanned && <span className="ml-2">· last scan: {lastScanned}</span>}
             </p>
           </div>
           <button

@@ -25,7 +25,7 @@ import { classifyMessage } from './context-classifier';
 import { extractRequests, generateConfirmationMessage } from './request-extractor';
 import { runExpertPanel, formatPanelForPrompt } from './expert-panel-engine';
 import type { ExpertPanelResult } from './expert-panel-engine';
-import { analyzeAllProjects, analyzeProject, generateSharedUtilsRecs } from './learning-engine';
+import { analyzeAllProjectsAsync, analyzeProjectAsync, generateSharedUtilsRecs } from './learning-engine';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -1741,20 +1741,63 @@ ${stats.stalledProjects.slice(0, 5).map((p: any) => `- ${p.name}`).join('\n') ||
   setInterval(checkWeeklyDigest, 5 * 60 * 1000); // check every 5 min
 
   // ── INTELLIGENCE ENGINE ─────────────────────────────────────────────────────
-  // Run on app start (5s delay, non-blocking)
-  setTimeout(() => {
+  let lastIntelligenceRun = 0;
+  const runIntelligenceIfNeeded = (reason: string) => {
+    const now = Date.now();
+    if (now - lastIntelligenceRun < 5 * 60 * 1000) return; // min 5min between runs
+    console.log(`[Intelligence] Running (${reason})`);
     try {
       runIntelligenceEngine();
       runCrossProjectAnalysis();
-    } catch (e) {
-      console.error('Intelligence engine error:', e);
-    }
-  }, 5000);
+      lastIntelligenceRun = now;
+    } catch (e) { console.error('[Intelligence] Error:', e); }
+  };
+
+  // Run on startup (8s delay)
+  setTimeout(() => runIntelligenceIfNeeded('startup'), 8000);
+
+  // Seed disabled feature flags (9Soccer discovered flags)
+  setTimeout(() => {
+    try {
+      const flags = [
+        { project: '9soccer', key: 'share_bar', note: 'Share bar disabled — viral loop missing. Enable to unlock social sharing.' },
+        { project: '9soccer', key: 'prestige_system', note: 'Prestige system disabled — long-term retention mechanic missing.' },
+        { project: '9soccer', key: 'landscape_mode', note: 'Landscape mode disabled — limits gameplay on tablets.' },
+      ];
+      runQuery("INSERT OR IGNORE INTO app_settings (key, value) VALUES ('disabled_feature_flags', ?)", [JSON.stringify(flags)]);
+    } catch { /* skip */ }
+  }, 3000);
+
+  // Daily 09:00 IST schedule
+  const scheduleIntelligence = () => {
+    const now = new Date();
+    const israel = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));
+    const next9am = new Date(israel);
+    next9am.setHours(9, 0, 0, 0);
+    if (israel.getHours() >= 9) next9am.setDate(next9am.getDate() + 1);
+    const msUntil = next9am.getTime() - israel.getTime();
+    setTimeout(() => {
+      runIntelligenceIfNeeded('daily 09:00');
+      setInterval(() => runIntelligenceIfNeeded('daily interval'), 24 * 60 * 60 * 1000);
+    }, msUntil);
+  };
+  scheduleIntelligence();
 
   ipcMain.handle('intelligence:run', () => {
     const suggestions = runIntelligenceEngine();
     runCrossProjectAnalysis();
+    lastIntelligenceRun = Date.now();
     return suggestions;
+  });
+
+  ipcMain.handle('intelligence:seed-feature-flags', () => {
+    const flags = [
+      { project: '9soccer', key: 'share_bar', note: 'Share bar disabled — viral loop missing. Enable to unlock social sharing.' },
+      { project: '9soccer', key: 'prestige_system', note: 'Prestige system disabled — long-term retention mechanic missing.' },
+      { project: '9soccer', key: 'landscape_mode', note: 'Landscape mode disabled — limits gameplay on tablets.' },
+    ];
+    runQuery("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('disabled_feature_flags', ?)", [JSON.stringify(flags)]);
+    return { ok: true, seeded: flags.length };
   });
 
   ipcMain.handle('intelligence:get-suggestions', (_e, projectId?: number) => {
@@ -1950,7 +1993,27 @@ ${stats.stalledProjects.slice(0, 5).map((p: any) => `- ${p.name}`).join('\n') ||
     projectId: number;
     action: string;
     taskDescription: string;
+    forceRefresh?: boolean;
   }) => {
+    // 24h cache check
+    if (!args.forceRefresh) {
+      const cached = getOne(
+        `SELECT result_json, consensus_score, created_at FROM expert_panel_results
+         WHERE project_id = ? AND action = ? AND created_at > datetime('now', '-24 hours')
+         ORDER BY created_at DESC LIMIT 1`,
+        [args.projectId, args.action]
+      ) as { result_json: string; consensus_score: number; created_at: string } | null;
+      if (cached) {
+        try {
+          const panel = JSON.parse(cached.result_json);
+          panel._fromCache = true;
+          panel._cachedAt = cached.created_at;
+          console.log(`[Expert Panel] Cache hit: ${args.action} (${cached.created_at})`);
+          return panel;
+        } catch { /* fall through to fresh run */ }
+      }
+    }
+
     const proj = getOne('SELECT * FROM projects WHERE id = ?', [args.projectId]) as Record<string, unknown> | null;
     if (!proj) return null;
 
@@ -2006,56 +2069,62 @@ ${stats.stalledProjects.slice(0, 5).map((p: any) => `- ${p.name}`).join('\n') ||
   });
 
   // ── Learning Engine ───────────────────────────────────────────────────────
-  ipcMain.handle('learning:analyze-all', () => {
+  ipcMain.handle('learning:analyze-all', async () => {
     const projects = getAll(
       "SELECT name, repo_path, status FROM projects WHERE status NOT IN ('archived', 'idea')",
       []
     ) as Array<{ name: string; repo_path: string | null; status: string }>;
-    return analyzeAllProjects(projects);
+    return analyzeAllProjectsAsync(projects);
   });
 
-  ipcMain.handle('learning:analyze-project', (_e, projectId: number) => {
+  ipcMain.handle('learning:analyze-project', async (_e, projectId: number) => {
     const project = getOne('SELECT name, repo_path FROM projects WHERE id = ?', [projectId]) as { name: string; repo_path: string | null } | null;
     if (!project?.repo_path) return null;
-    return analyzeProject(project.name, project.repo_path);
+    return analyzeProjectAsync(project.name, project.repo_path);
   });
 
-  ipcMain.handle('learning:get-shared-utils-recs', () => {
+  ipcMain.handle('learning:get-shared-utils-recs', async () => {
     const projects = getAll(
       "SELECT name, repo_path, status FROM projects WHERE status NOT IN ('archived', 'idea')",
       []
     ) as Array<{ name: string; repo_path: string | null; status: string }>;
-    const reports = analyzeAllProjects(projects);
+    const reports = await analyzeAllProjectsAsync(projects);
     return generateSharedUtilsRecs(reports);
   });
 
   // ── Auto-watch Claude Code sessions ──────────────────────────────────────
-  setTimeout(() => {
+  let chokidarWatcher: { close: () => void } | null = null;
+  const startSessionWatcher = () => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const chokidar = require('chokidar') as { watch: (p: string, opts: Record<string, unknown>) => { on: (ev: string, cb: (p: string) => void) => void } };
+      const chokidar = require('chokidar') as { watch: (p: string, opts: Record<string, unknown>) => { on: (ev: string, cb: (p: string) => void) => { close: () => void } } };
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const os = require('os') as typeof import('os');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const nodePath = require('path') as typeof import('path');
-      const claudeDir = nodePath.join(os.homedir(), '.claude', 'projects');
-      if (!fs.existsSync(claudeDir)) return;
-      chokidar.watch(claudeDir, {
+      const claudeDir = path.join(os.homedir(), '.claude', 'projects');
+      if (!fs.existsSync(claudeDir)) { console.log('[session-watcher] Claude sessions dir not found:', claudeDir); return; }
+      if (chokidarWatcher) { chokidarWatcher.close(); chokidarWatcher = null; }
+      chokidarWatcher = chokidar.watch(claudeDir, {
         ignoreInitial: true,
         persistent: false,
-        awaitWriteFinish: { stabilityThreshold: 3000 },
+        awaitWriteFinish: { stabilityThreshold: 3000, pollInterval: 500 },
+        ignored: (p: string) => !p.endsWith('.jsonl'),
       }).on('add', (filePath: string) => {
-        if (!filePath.endsWith('.jsonl')) return;
         try {
-          const parts = filePath.split(nodePath.sep);
+          const parts = filePath.split(path.sep);
           const projectDir = parts[parts.length - 2] || '';
-          const projectName = projectDir.replace(/^[^a-zA-Z]*/, '').split('-')[0];
-          console.log(`[session-watcher] New session: ${projectName} — ${filePath}`);
-        } catch { /* silent */ }
+          const projectName = projectDir.replace(/^[^a-zA-Z]*/, '').split('-')[0] || 'unknown';
+          const sessionId = path.basename(filePath, '.jsonl');
+          runInsert(
+            `INSERT OR IGNORE INTO pipeline_sessions (id, project, phase, quality, file_path, imported_at) VALUES (?,?,?,?,?,datetime('now'))`,
+            [sessionId, projectName, 'dev', 50, filePath]
+          );
+          console.log(`[session-watcher] Tracked: ${projectName} Q=50 — ${sessionId}`);
+        } catch (e) { console.error('[session-watcher] Error:', e); }
       });
-      console.log('[session-watcher] Watching', claudeDir);
-    } catch { /* chokidar not installed, skip silently */ }
-  }, 10000);
+      console.log('[session-watcher] Watching:', claudeDir);
+    } catch (e) { console.error('[session-watcher] Failed to start:', e); }
+  };
+  setTimeout(startSessionWatcher, 10000);
 
   ipcMain.handle('pipeline:enhance-prompt', (_e, args: { prompt: string; phase: string }) => {
     const row = getOne('SELECT phases_json FROM mega_prompt_versions ORDER BY version DESC LIMIT 1', []) as { phases_json: string } | null;
@@ -2076,4 +2145,15 @@ Best performing prompts for ${args.phase} phase always include:
       return patternNote + '\n' + args.prompt;
     } catch { return args.prompt; }
   });
+
+  // ── Auto-generate IPC_REFERENCE.md on startup ─────────────────────────────
+  setTimeout(() => {
+    try {
+      const { generateIpcReference } = require('./generate-ipc-reference') as { generateIpcReference: (a: string, b: string, c: string) => void };
+      const ipcPath = path.join(__dirname, '..', '..', 'src', 'main', 'ipc.ts');
+      const preloadPath = path.join(__dirname, '..', '..', 'src', 'main', 'preload.ts');
+      const outPath = path.join(__dirname, '..', '..', 'IPC_REFERENCE.md');
+      generateIpcReference(ipcPath, preloadPath, outPath);
+    } catch (e) { console.log('[IPC Reference] Skipped:', e); }
+  }, 15000);
 }

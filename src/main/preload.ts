@@ -79,7 +79,7 @@ const ALLOWED_CHANNELS = new Set([
   'work-sessions:mark-billed',
   // Intelligence
   'intelligence:run', 'intelligence:get-suggestions', 'intelligence:dismiss',
-  'intelligence:get-cross-project', 'intelligence:dismiss-insight',
+  'intelligence:get-cross-project', 'intelligence:dismiss-insight', 'intelligence:seed-feature-flags',
   // Billing
   'invoices:create', 'invoices:get', 'invoices:update-status',
   // Pipeline — 11STEPS2DONE

@@ -171,6 +171,28 @@ export function runIntelligenceEngine(): Suggestion[] {
     );
   }
 
+  // ── RULE: Disabled feature flags ─────────────────────────────────────────
+  try {
+    const flagsRow = getOne("SELECT value FROM app_settings WHERE key = 'disabled_feature_flags'", []) as { value: string } | null;
+    if (flagsRow?.value) {
+      const flags = JSON.parse(flagsRow.value) as Array<{ project: string; key: string; note: string }>;
+      for (const flag of flags) {
+        const proj = projects.find(p => (p.name as string).toLowerCase().includes(flag.project.toLowerCase()));
+        if (!proj) continue;
+        const exists = getOne(
+          "SELECT id FROM intelligence_suggestions WHERE project_id = ? AND title LIKE ? AND expires_at > datetime('now')",
+          [proj.id, `%${flag.key}%`]
+        );
+        if (!exists) {
+          runInsert(
+            'INSERT INTO intelligence_suggestions (project_id, suggestion_type, title, description, priority, action_prompt_id, expires_at) VALUES (?,?,?,?,?,?,?)',
+            [proj.id, 'opportunity', `Feature flag disabled: ${flag.key}`, flag.note, flag.key === 'share_bar' ? 8 : 5, null, new Date(Date.now() + 7 * 86400000).toISOString()]
+          );
+        }
+      }
+    }
+  } catch { /* skip */ }
+
   return suggestions;
 }
 

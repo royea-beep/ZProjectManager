@@ -184,14 +184,19 @@ export default function App() {
   const languageValue = useLanguageProvider();
   const { showHelp, setShowHelp } = useKeyboardShortcuts(navigate);
 
-  // Auto-navigate to /briefing once per day on first open
+  // Auto-navigate to /briefing once per day — only first open of the day
   React.useEffect(() => {
-    const lastSeen = localStorage.getItem('briefing_date');
+    const lastSeenDate = localStorage.getItem('briefing_date');
+    const lastSeenTimestamp = localStorage.getItem('briefing_timestamp');
     const today = new Date().toISOString().slice(0, 10);
-    if (lastSeen !== today) {
+    const isNewDay = lastSeenDate !== today;
+    const isFirstOpen = !lastSeenTimestamp;
+    if (isNewDay || isFirstOpen) {
       navigate('/briefing');
       localStorage.setItem('briefing_date', today);
+      localStorage.setItem('briefing_timestamp', String(Date.now()));
     }
+    // Subsequent opens same day — do nothing
   }, []);
 
   // Poll localStorage for active timer

@@ -127,7 +127,9 @@
       "Bash(mkdir -p C:/Projects/analyzer-standalone/src/components)",
       "Bash(cp C:/Projects/shared-utils/src/BugReporterModal.tsx C:/Projects/analyzer-standalone/src/components/BugReporterModal.tsx)",
       "Bash(head -100 C:/Projects/90soccer/src/components/game/HomeScreen.tsx echo ---SOUND--- find C:/Projects/90soccer/src -name *sound* -o -name *audio* -o -name *Sound*)",
-      "Bash(head -5 echo ---STREAK--- find C:/Projects/90soccer/src -name *Streak*)"
+      "Bash(head -5 echo ---STREAK--- find C:/Projects/90soccer/src -name *Streak*)",
+      "Bash(diff:*)",
+      "Bash(xargs -I{} basename {})"
     ]
   }
 }
