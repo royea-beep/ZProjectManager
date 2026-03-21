@@ -12,6 +12,7 @@ import * as api from '../services/api';
 import type { Suggestion, WeeklyDigest } from '../services/api';
 import { PROJECT_TYPES } from '../../shared/constants';
 import NextStepsWidget from '../components/NextStepsWidget';
+import { EmptyState } from '../components/EmptyState';
 
 const STATUS_FILTERS = ['all', 'stale', 'building', 'launched', 'paused', 'archived', 'idea', 'planning', 'testing'];
 
@@ -480,31 +481,21 @@ export default function Dashboard() {
       </div>
 
       {filtered.length === 0 && (
-        <div className="text-center py-16">
-          <div className="text-4xl mb-3 opacity-20">
-            {search || filter !== 'all' ? '~' : '+'}
-          </div>
-          <p className="text-dark-muted mb-1">
-            {search || filter !== 'all'
-              ? 'No projects match your filters'
-              : 'No projects yet'}
-          </p>
-          {(search || filter !== 'all') ? (
-            <button
-              onClick={() => { setFilter('all'); setSearch(''); }}
-              className="text-sm text-accent-blue hover:underline mt-2"
-            >
-              Clear filters
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="mt-3 px-4 py-2 bg-accent-blue text-white text-sm rounded-lg hover:bg-accent-blue/80 transition-colors"
-            >
-              + Create your first project
-            </button>
-          )}
-        </div>
+        search || filter !== 'all' ? (
+          <EmptyState
+            icon="🔍"
+            title="No projects match your filters"
+            description="Try clearing the search or changing the status filter."
+            action={{ label: 'Clear filters', onClick: () => { setFilter('all'); setSearch(''); } }}
+          />
+        ) : (
+          <EmptyState
+            icon="🚀"
+            title="No projects yet"
+            description="Create your first project to start tracking progress, generating prompts, and building your portfolio."
+            action={{ label: '+ Create first project', onClick: () => setShowCreate(true) }}
+          />
+        )
       )}
 
       <CreateProjectModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={refresh} />

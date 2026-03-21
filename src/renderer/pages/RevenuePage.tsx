@@ -4,6 +4,7 @@ import * as api from '../services/api';
 import type { RevenueEntry } from '../../shared/types';
 import type { Project } from '../../shared/types';
 import { useToast } from '../components/Toast';
+import { EmptyState } from '../components/EmptyState';
 
 const REVENUE_MODELS = [
   'pre-revenue',
@@ -308,6 +309,19 @@ export default function RevenuePage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Empty state for no entries */}
+      {entries.length === 0 && !showAddEntry && (
+        <div className="mb-4">
+          <EmptyState
+            icon="💰"
+            title="No revenue tracked yet"
+            description="Log MRR, one-time payments, or refunds to track your portfolio's revenue over time."
+            action={{ label: '+ Log first entry', onClick: () => setShowAddEntry(true) }}
+            compact
+          />
         </div>
       )}
 

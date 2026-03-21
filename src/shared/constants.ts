@@ -288,4 +288,5 @@ export const IPC_CHANNELS = {
   SESSIONS_SAVE_LOG: 'sessions:save-log',
   SESSIONS_GET_ALL_LOGS: 'sessions:get-all-logs',
   SESSIONS_ANALYZE_PATTERNS: 'sessions:analyze-patterns',
+  SESSIONS_IMPORT_CLAUDE: 'sessions:import-claude-output',
 } as const;

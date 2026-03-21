@@ -11,6 +11,7 @@ import KanbanPage from './pages/KanbanPage';
 import SynergyPage from './pages/SynergyPage';
 import RevenuePage from './pages/RevenuePage';
 import PortfolioPage from './pages/PortfolioPage';
+import PromptAnalyticsPage from './pages/PromptAnalyticsPage';
 import IdeaCollector from './components/IdeaCollector';
 import GlobalSearch from './components/GlobalSearch';
 import NotificationBell from './components/NotificationBell';
@@ -53,6 +54,7 @@ const navItems = [
   { path: '/synergy', label: 'Synergy', icon: '⬢' },
   { path: '/activity', label: 'Activity', icon: '◎' },
   { path: '/settings', label: 'Settings', icon: '⚙' },
+  { path: '/prompt-analytics', label: 'Prompt Stats', icon: '📊' },
 ];
 
 // Keyboard shortcut definitions
@@ -67,6 +69,7 @@ const SHORTCUTS: { key: string; ctrl?: boolean; alt?: boolean; shift?: boolean; 
   { key: '7', alt: true, description: 'Synergy', action: 'nav:/synergy' },
   { key: '8', alt: true, description: 'Activity', action: 'nav:/activity' },
   { key: '9', alt: true, description: 'Settings', action: 'nav:/settings' },
+  { key: '0', alt: true, description: 'Prompt Stats', action: 'nav:/prompt-analytics' },
   { key: 'n', ctrl: true, description: 'New Project', action: 'new-project' },
   { key: '/', ctrl: false, description: 'Focus Search', action: 'search' },
 ];
@@ -123,37 +126,38 @@ function useKeyboardShortcuts(navigate: ReturnType<typeof useNavigate>) {
   return { showHelp, setShowHelp };
 }
 
+const SHORTCUT_LIST = [
+  ['Ctrl+K', 'Global Search'],
+  ['/', 'Focus Search'],
+  ['Ctrl+N', 'New Project'],
+  ['Alt+1', 'Dashboard'],
+  ['Alt+2', 'Portfolio'],
+  ['Alt+3', 'Kanban'],
+  ['Alt+4', 'Revenue'],
+  ['Alt+5', 'Learnings'],
+  ['Alt+6', 'Patterns'],
+  ['Alt+7', 'Synergy'],
+  ['Alt+8', 'Activity'],
+  ['Alt+9', 'Settings'],
+  ['Alt+0', 'Prompt Stats'],
+  ['Shift+?', 'This overlay'],
+] as const;
+
 function ShortcutsHelp({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" onClick={onClose}>
-      <div className="bg-dark-surface border border-dark-border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100]" onClick={onClose}>
+      <div className="bg-dark-surface border border-dark-border rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">Keyboard Shortcuts</h2>
-          <button onClick={onClose} className="text-dark-muted hover:text-dark-text text-lg">✕</button>
+          <h2 className="text-base font-bold">Keyboard Shortcuts</h2>
+          <button onClick={onClose} className="text-dark-muted hover:text-dark-text text-lg leading-none">✕</button>
         </div>
-        <div className="space-y-1">
-          <div className="flex justify-between py-1.5 border-b border-dark-border">
-            <span className="text-sm text-dark-muted">Global Search</span>
-            <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">Ctrl+K</span>
-          </div>
-          <div className="flex justify-between py-1.5 border-b border-dark-border">
-            <span className="text-sm text-dark-muted">Focus Search</span>
-            <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">/</span>
-          </div>
-          <div className="flex justify-between py-1.5 border-b border-dark-border">
-            <span className="text-sm text-dark-muted">New Project</span>
-            <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">Ctrl+N</span>
-          </div>
-          {navItems.map((item, i) => (
-            <div key={item.path} className="flex justify-between py-1.5 border-b border-dark-border">
-              <span className="text-sm text-dark-muted">{item.label}</span>
-              <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">Alt+{i + 1}</span>
+        <div className="space-y-0.5">
+          {SHORTCUT_LIST.map(([key, label]) => (
+            <div key={key} className="flex justify-between py-1.5 border-b border-dark-border/50 last:border-0">
+              <span className="text-xs text-dark-muted">{label}</span>
+              <kbd className="text-[10px] font-mono bg-dark-hover border border-dark-border px-1.5 py-0.5 rounded text-dark-text">{key}</kbd>
             </div>
           ))}
-          <div className="flex justify-between py-1.5">
-            <span className="text-sm text-dark-muted">This Help</span>
-            <span className="text-xs font-mono bg-dark-hover px-2 py-0.5 rounded">Shift+?</span>
-          </div>
         </div>
       </div>
     </div>
@@ -181,6 +185,25 @@ export default function App() {
     window.addEventListener('storage', checkTimer);
     return () => { clearInterval(interval); window.removeEventListener('storage', checkTimer); };
   }, []);
+
+  // Dynamic window title per page
+  React.useEffect(() => {
+    const PAGE_TITLES: Record<string, string> = {
+      '/': 'ZProjectManager',
+      '/portfolio': 'ZProjectManager — Portfolio',
+      '/kanban': 'ZProjectManager — Kanban',
+      '/revenue': 'ZProjectManager — Revenue',
+      '/learnings': 'ZProjectManager — Learnings',
+      '/patterns': 'ZProjectManager — Patterns',
+      '/synergy': 'ZProjectManager — Synergy',
+      '/activity': 'ZProjectManager — Activity',
+      '/settings': 'ZProjectManager — Settings',
+      '/prompt-analytics': 'ZProjectManager — Prompt Stats',
+    };
+    if (!isProjectPage) {
+      document.title = PAGE_TITLES[currentPath] || 'ZProjectManager';
+    }
+  }, [currentPath, isProjectPage]);
 
   React.useEffect(() => {
     const update = async () => {
@@ -256,6 +279,7 @@ export default function App() {
           <Route path="/patterns" element={<PatternsPage />} />
           <Route path="/synergy" element={<SynergyPage />} />
           <Route path="/portfolio" element={<PortfolioPage />} />
+          <Route path="/prompt-analytics" element={<PromptAnalyticsPage />} />
           <Route path="/revenue" element={<RevenuePage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/settings" element={<SettingsPage />} />

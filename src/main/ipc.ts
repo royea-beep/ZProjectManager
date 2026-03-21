@@ -17,6 +17,7 @@ import { SITUATIONAL_PROMPTS, getSituationalPrompt } from './situational-prompts
 import type { Situation } from './situational-prompts';
 import { saveSessionLog, readAllSessionLogs, analyzeSessionPatterns } from './session-logger';
 import type { SessionEntry } from './session-logger';
+import { parseClaudeOutput } from './conversation-importer';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -1277,6 +1278,22 @@ export function registerIpcHandlers(): void {
     if (filters?.projectId) { query += ` AND project_id = ?`; params.push(filters.projectId); }
     query += ` GROUP BY prompt_id, prompt_type ORDER BY total_uses DESC`;
     return getAll(query, params);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SESSIONS_IMPORT_CLAUDE, (_e, args: { projectId: number; rawText: string }) => {
+    const parsed = parseClaudeOutput(args.rawText);
+    const summary = `Imported: ${parsed.filesChanged.length} files, ${parsed.decisions.length} decisions, ${parsed.nextSteps.length} next steps`;
+    const sessionId = runInsert(
+      'INSERT INTO project_sessions (project_id, summary, what_done, next_step) VALUES (?, ?, ?, ?)',
+      [args.projectId, summary, parsed.filesChanged.join('\n') || null, parsed.nextSteps[0] || null]
+    );
+    for (const d of parsed.decisions) {
+      runInsert('INSERT INTO project_decisions (project_id, decision) VALUES (?, ?)', [args.projectId, d]);
+    }
+    for (const t of parsed.nextSteps) {
+      runInsert('INSERT INTO project_tasks (project_id, title, status) VALUES (?, ?, ?)', [args.projectId, t, 'todo']);
+    }
+    return { sessionId, ...parsed };
   });
 
   ipcMain.handle('prompts:log-usage', (_e, args: { promptType: string; promptId: string; projectId?: number }) => {

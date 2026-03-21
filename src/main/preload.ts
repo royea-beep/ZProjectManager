@@ -63,6 +63,7 @@ const ALLOWED_CHANNELS = new Set([
   'prompts:log-usage', 'prompts:update-outcome', 'prompts:get-usage',
   // Session Logger
   'sessions:save-log', 'sessions:get-all-logs', 'sessions:analyze-patterns',
+  'sessions:import-claude-output',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

@@ -334,6 +334,16 @@ export const getAllSessionLogs = (projectPath: string) =>
 export const analyzeSessionPatterns = (projectPath: string) =>
   invoke(IPC_CHANNELS.SESSIONS_ANALYZE_PATTERNS, projectPath) as Promise<SessionPatterns>;
 
+export interface ImportedSession {
+  sessionId: number;
+  decisions: string[];
+  filesChanged: string[];
+  bugsFixed: string[];
+  nextSteps: string[];
+}
+export const importClaudeOutput = (args: { projectId: number; rawText: string }) =>
+  invoke(IPC_CHANNELS.SESSIONS_IMPORT_CLAUDE, args) as Promise<ImportedSession>;
+
 // Prompt usage tracking
 export interface PromptUsageEntry {
   id: string;

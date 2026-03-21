@@ -21,7 +21,7 @@ import { useToast } from '../components/Toast';
 import PromptPage from './PromptPage';
 import NextStepsWidget from '../components/NextStepsWidget';
 
-const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt'];
+const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt', 'Import'];
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -171,6 +171,7 @@ export default function ProjectDetail() {
         {tab === 'Notes' && <QuickNotes projectId={projectId} />}
         {tab === 'Activity' && <ActivityTab projectId={projectId} />}
         {tab === 'Prompt' && <PromptPage project={project} onUpdate={update} />}
+        {tab === 'Import' && <ImportTab projectId={projectId} onImported={refresh} />}
       </div>
 
       {/* Session Work Timer */}
@@ -2103,6 +2104,99 @@ function DesignDimensionEditor({ score, onSave }: { score: WebsiteDesignScore; o
         className="px-4 py-1.5 text-sm bg-accent-blue text-white rounded hover:bg-accent-blue/80">
         Save
       </button>
+    </div>
+  );
+}
+
+// ============ IMPORT TAB ============
+function ImportTab({ projectId, onImported }: { projectId: number; onImported: () => void }) {
+  const [rawText, setRawText] = React.useState('');
+  const [result, setResult] = React.useState<api.ImportedSession | null>(null);
+  const [importing, setImporting] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleImport = async () => {
+    if (!rawText.trim()) return;
+    setImporting(true);
+    try {
+      const res = await api.importClaudeOutput({ projectId, rawText });
+      setResult(res);
+      onImported();
+      toast(`Imported: ${res.filesChanged.length} files, ${res.decisions.length} decisions, ${res.nextSteps.length} tasks`, 'success');
+    } catch {
+      toast('Import failed', 'error');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold mb-1">📥 Import Claude Output</h3>
+        <p className="text-xs text-dark-muted">Paste the final report or session summary from a Claude Code session. The importer extracts decisions, files changed, bugs fixed, and next steps — and saves them to this project's DB.</p>
+      </div>
+
+      <textarea
+        value={rawText}
+        onChange={e => setRawText(e.target.value)}
+        placeholder="Paste Claude Code output here...&#10;&#10;Tip: Paste the 'MEGA FINAL REPORT' or session end summary. The importer looks for:&#10;• Lines starting with - or • (bullets)&#10;• Sections with 'decisions', 'built', 'fixed', 'next step'"
+        rows={12}
+        className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2.5 text-sm text-dark-text placeholder-dark-muted/40 focus:outline-none focus:border-accent-blue resize-none font-mono leading-relaxed mb-3"
+      />
+
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={handleImport}
+          disabled={!rawText.trim() || importing}
+          className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all ${
+            rawText.trim() && !importing
+              ? 'bg-accent-blue text-white hover:bg-accent-blue/80'
+              : 'bg-dark-surface text-dark-muted cursor-not-allowed'
+          }`}
+        >
+          {importing ? 'Importing...' : 'Import Session'}
+        </button>
+        {rawText && (
+          <button
+            onClick={() => { setRawText(''); setResult(null); }}
+            className="text-xs text-dark-muted hover:text-dark-text transition-colors"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {result && (
+        <div className="bg-accent-green/5 border border-accent-green/20 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-semibold text-accent-green">✅ Import Complete</p>
+          {result.decisions.length > 0 && (
+            <div>
+              <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-1">Decisions saved ({result.decisions.length})</p>
+              <ul className="space-y-0.5">
+                {result.decisions.map((d, i) => <li key={i} className="text-xs text-dark-muted">· {d}</li>)}
+              </ul>
+            </div>
+          )}
+          {result.filesChanged.length > 0 && (
+            <div>
+              <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-1">Files / items ({result.filesChanged.length})</p>
+              <ul className="space-y-0.5">
+                {result.filesChanged.slice(0, 6).map((f, i) => <li key={i} className="text-xs font-mono text-dark-muted">· {f}</li>)}
+                {result.filesChanged.length > 6 && <li className="text-xs text-dark-muted/50">+ {result.filesChanged.length - 6} more</li>}
+              </ul>
+            </div>
+          )}
+          {result.nextSteps.length > 0 && (
+            <div>
+              <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-1">Tasks created ({result.nextSteps.length})</p>
+              <ul className="space-y-0.5">
+                {result.nextSteps.map((t, i) => <li key={i} className="text-xs text-dark-muted">· {t}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
