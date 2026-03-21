@@ -1226,7 +1226,21 @@ export function registerIpcHandlers(): void {
       sessions,
     };
 
-    return generateMegaPrompt(projectData, args.action, args.extraContext);
+    const prompt = generateMegaPrompt(projectData, args.action, args.extraContext);
+
+    // Auto-inject project parameters if available
+    const paramRows = getAll(
+      'SELECT key, value FROM project_parameters WHERE project_id = ? AND value IS NOT NULL AND value != \'\'',
+      [args.projectId]
+    ) as { key: string; value: string }[];
+    if (paramRows.length > 0) {
+      const paramMap: Record<string, string | null> = {};
+      for (const r of paramRows) paramMap[r.key] = r.value;
+      const paramBlock = formatParamsAsContext(paramMap);
+      return prompt.replace('## LOCKED DECISIONS', paramBlock + '\n\n## LOCKED DECISIONS');
+    }
+
+    return prompt;
   });
 
   ipcMain.handle(IPC_CHANNELS.PROMPTS_GET_ACTIONS, () => {
