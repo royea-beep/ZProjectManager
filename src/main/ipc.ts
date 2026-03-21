@@ -20,6 +20,7 @@ import type { SessionEntry } from './session-logger';
 import { parseClaudeOutput } from './conversation-importer';
 import { extractProjectParameters, parametersToDbRows, formatParamsAsContext } from './parameter-extractor';
 import { runIntelligenceEngine, runCrossProjectAnalysis } from './intelligence-engine';
+import { loadMegaPrompts, getSessionStats, runPipeline, getLatestMegaPromptsFile } from './pipeline-reader';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -1717,5 +1718,78 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('work-sessions:mark-billed', (_e, projectId: number) => {
     runQuery('UPDATE work_sessions SET billed = 1 WHERE project_id = ? AND billed = 0', [projectId]);
     return { ok: true };
+  });
+
+  // ── PIPELINE: 11STEPS2DONE INTEGRATION ─────────────────────────────────────
+  ipcMain.handle('pipeline:load-mega-prompts', () => {
+    const data = loadMegaPrompts();
+    if (!data) return { error: 'mega_prompts not found' };
+
+    const filePath = getLatestMegaPromptsFile();
+    runQuery(
+      `INSERT OR REPLACE INTO mega_prompt_versions (version, file_path, phases_json, raw_content, loaded_at)
+       VALUES (?, ?, ?, ?, datetime('now'))`,
+      [data.version, filePath, JSON.stringify(data.phases), data.raw_content]
+    );
+
+    return data;
+  });
+
+  ipcMain.handle('pipeline:get-stats', () => {
+    return getSessionStats();
+  });
+
+  ipcMain.handle('pipeline:run', async () => {
+    const result = await runPipeline();
+    if (result.success) {
+      runQuery("UPDATE app_settings SET value = datetime('now') WHERE key = 'pipeline_last_run'", []);
+    }
+    return result;
+  });
+
+  ipcMain.handle('pipeline:get-latest-content', () => {
+    return getOne('SELECT * FROM mega_prompt_versions ORDER BY version DESC LIMIT 1', []);
+  });
+
+  ipcMain.handle('pipeline:get-quality-insights', () => {
+    const stats = getSessionStats();
+    if (!stats) return null;
+
+    const data = loadMegaPrompts();
+    const lastRunRow = getOne("SELECT value FROM app_settings WHERE key = 'pipeline_last_run'", []) as { value: string } | null;
+    const dirRow = getOne("SELECT value FROM app_settings WHERE key = 'pipeline_dir'", []) as { value: string } | null;
+
+    return {
+      stats,
+      topPhases: Object.entries(stats.byPhase || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5),
+      topProjects: Object.entries(stats.byProject || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10),
+      megaPromptsVersion: data?.version,
+      pipelineDir: dirRow?.value,
+      lastRun: lastRunRow?.value,
+    };
+  });
+
+  ipcMain.handle('pipeline:enhance-prompt', (_e, args: { prompt: string; phase: string }) => {
+    const row = getOne('SELECT phases_json FROM mega_prompt_versions ORDER BY version DESC LIMIT 1', []) as { phases_json: string } | null;
+    if (!row?.phases_json) return args.prompt;
+
+    try {
+      const phases = JSON.parse(row.phases_json) as Record<string, { best_examples: string[]; pattern_notes: string }>;
+      const phaseData = phases[args.phase] || phases['dev'];
+      if (!phaseData?.best_examples?.length) return args.prompt;
+
+      const patternNote = `## LEARNED FROM ${phaseData.pattern_notes}
+Best performing prompts for ${args.phase} phase always include:
+- Working directory specified
+- File paths to read first
+- Numbered task steps
+- Explicit definition of done
+`;
+      return patternNote + '\n' + args.prompt;
+    } catch { return args.prompt; }
   });
 }

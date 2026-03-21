@@ -14,6 +14,7 @@ import PortfolioPage from './pages/PortfolioPage';
 import PromptAnalyticsPage from './pages/PromptAnalyticsPage';
 import IntelligencePage from './pages/IntelligencePage';
 import BillingPage from './pages/BillingPage';
+import PipelinePage from './pages/PipelinePage';
 import IdeaCollector from './components/IdeaCollector';
 import GlobalSearch from './components/GlobalSearch';
 import NotificationBell from './components/NotificationBell';
@@ -61,6 +62,7 @@ const navItems = [
   { path: '/prompt-analytics', label: 'Prompt Stats', icon: '📊' },
   { path: '/intelligence', label: 'Intelligence', icon: '🧠' },
   { path: '/billing', label: 'Billing', icon: '💼' },
+  { path: '/pipeline', label: 'Pipeline', icon: '📊' },
 ];
 
 // Keyboard shortcut definitions
@@ -78,6 +80,7 @@ const SHORTCUTS: { key: string; ctrl?: boolean; alt?: boolean; shift?: boolean; 
   { key: '0', alt: true, description: 'Prompt Stats', action: 'nav:/prompt-analytics' },
   { key: 'i', alt: true, description: 'Intelligence', action: 'nav:/intelligence' },
   { key: 'b', alt: true, description: 'Billing', action: 'nav:/billing' },
+  { key: 'p', alt: true, description: 'Learning Pipeline', action: 'nav:/pipeline' },
   { key: 'n', ctrl: true, description: 'New Project', action: 'new-project' },
   { key: '/', ctrl: false, description: 'Focus Search', action: 'search' },
 ];
@@ -148,6 +151,9 @@ const SHORTCUT_LIST = [
   ['Alt+8', 'Activity'],
   ['Alt+9', 'Settings'],
   ['Alt+0', 'Prompt Stats'],
+  ['Alt+I', 'Intelligence'],
+  ['Alt+B', 'Billing'],
+  ['Alt+P', 'Pipeline'],
   ['Shift+?', 'This overlay'],
 ] as const;
 
@@ -309,6 +315,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="/billing" element={<BillingPage />} />
+          <Route path="/pipeline" element={<PipelinePage />} />
         </Routes>
       </main>
 

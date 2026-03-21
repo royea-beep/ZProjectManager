@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 12;
+const CURRENT_SCHEMA_VERSION = 13;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -363,6 +363,40 @@ function runMigrations(fromVersion: number): void {
         created_at TEXT DEFAULT (datetime('now'))
       )
     `);
+  }
+
+  // Migration 12 -> 13: pipeline integration tables
+  if (fromVersion < 13) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS pipeline_sessions (
+        id TEXT PRIMARY KEY,
+        project TEXT NOT NULL,
+        phase TEXT NOT NULL,
+        quality INTEGER NOT NULL,
+        turn_count INTEGER DEFAULT 0,
+        error_count INTEGER DEFAULT 0,
+        file_path TEXT,
+        imported_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_pipeline_project ON pipeline_sessions(project)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_pipeline_quality ON pipeline_sessions(quality)`);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS mega_prompt_versions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        version INTEGER UNIQUE NOT NULL,
+        file_path TEXT,
+        total_sessions INTEGER,
+        avg_quality REAL,
+        phases_json TEXT,
+        raw_content TEXT,
+        loaded_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('pipeline_last_run', '')`);
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('pipeline_dir', 'C:/Users/royea/Desktop/11STEPS2DONE')`);
   }
 
   // Migration 9 -> 10: project_parameters + golden_prompts tables

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, screen, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { initDatabase, flushDb, getAll, runInsert, runQuery } from './database';
+import { initDatabase, flushDb, getAll, runInsert, runQuery, getOne } from './database';
 import { registerIpcHandlers } from './ipc';
 import { autoUpdater } from 'electron-updater';
 import { startAutoBackup, stopAutoBackup } from './auto-backup';
@@ -174,6 +174,34 @@ app.whenReady().then(async () => {
   setTimeout(() => {
     try { detectPatterns({ getAll, runInsert, runQuery }); } catch (e) { console.error('[patterns] Auto-detect failed:', e); }
   }, 5000);
+
+  // Auto-load latest mega_prompts into DB (8s delay)
+  setTimeout(async () => {
+    try {
+      const { loadMegaPrompts, getLatestMegaPromptsFile } = await import('./pipeline-reader');
+      const currentFile = getLatestMegaPromptsFile();
+      if (!currentFile) return;
+
+      const versionMatch = currentFile.match(/v(\d+)/);
+      if (!versionMatch) return;
+      const version = parseInt(versionMatch[1]);
+
+      const existing = getOne('SELECT version FROM mega_prompt_versions WHERE version = ?', [version]);
+      if (!existing) {
+        const data = loadMegaPrompts();
+        if (data) {
+          runQuery(
+            `INSERT OR REPLACE INTO mega_prompt_versions (version, file_path, phases_json, raw_content, loaded_at)
+             VALUES (?, ?, ?, ?, datetime('now'))`,
+            [data.version, currentFile, JSON.stringify(data.phases), data.raw_content]
+          );
+          console.log(`[pipeline] Loaded mega_prompts_v${data.version}`);
+        }
+      }
+    } catch (e) {
+      console.error('[pipeline] Auto-load error:', e);
+    }
+  }, 8000);
 
   // Auto-sync GitHub data on startup (30s delay to not slow startup)
   setTimeout(async () => {

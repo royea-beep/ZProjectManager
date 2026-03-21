@@ -12,6 +12,7 @@ interface BriefingItem {
 export default function MorningBriefing({ onDismiss }: { onDismiss: () => void }) {
   const [briefing, setBriefing] = useState<BriefingItem[]>([]);
   const [topSuggestions, setTopSuggestions] = useState<any[]>([]);
+  const [pipelineStatus, setPipelineStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const hour = new Date().toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
 
@@ -25,6 +26,13 @@ export default function MorningBriefing({ onDismiss }: { onDismiss: () => void }
       await window.api.invoke('intelligence:run');
       const suggestions = await window.api.invoke('intelligence:get-suggestions') as any[];
       setTopSuggestions((suggestions || []).slice(0, 3));
+    } catch { /* non-blocking */ }
+
+    try {
+      const pipelineInsights = await window.api.invoke('pipeline:get-quality-insights') as any;
+      if (pipelineInsights?.megaPromptsVersion) {
+        setPipelineStatus(`mega_prompts_v${pipelineInsights.megaPromptsVersion} · ${pipelineInsights.stats?.total?.toLocaleString() || '?'} sessions · avg Q=${pipelineInsights.stats?.avgQuality || '?'}`);
+      }
     } catch { /* non-blocking */ }
 
     const [workspaces, projects] = await Promise.all([
@@ -113,6 +121,12 @@ export default function MorningBriefing({ onDismiss }: { onDismiss: () => void }
                 </p>
               ))}
             </div>
+          </div>
+        )}
+
+        {pipelineStatus && (
+          <div className="mt-4 pt-4 border-t border-dark-border">
+            <p className="text-[10px] text-dark-muted">📊 Pipeline: {pipelineStatus}</p>
           </div>
         )}
 

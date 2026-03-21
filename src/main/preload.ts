@@ -82,6 +82,9 @@ const ALLOWED_CHANNELS = new Set([
   'intelligence:get-cross-project', 'intelligence:dismiss-insight',
   // Billing
   'invoices:create', 'invoices:get', 'invoices:update-status',
+  // Pipeline — 11STEPS2DONE
+  'pipeline:load-mega-prompts', 'pipeline:get-stats', 'pipeline:run',
+  'pipeline:get-latest-content', 'pipeline:get-quality-insights', 'pipeline:enhance-prompt',
 ]);
 
 contextBridge.exposeInMainWorld('api', {
