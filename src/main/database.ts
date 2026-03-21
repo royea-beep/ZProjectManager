@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 13;
+const CURRENT_SCHEMA_VERSION = 14;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -397,6 +397,30 @@ function runMigrations(fromVersion: number): void {
 
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('pipeline_last_run', '')`);
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('pipeline_dir', 'C:/Users/royea/Desktop/11STEPS2DONE')`);
+  }
+
+  // Migration 13 -> 14: fix_cycle_times + partnership task fields + weekly digest settings
+  if (fromVersion < 14) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS fix_cycle_times (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        bug_report_id TEXT,
+        project_name TEXT,
+        severity TEXT,
+        reported_at TEXT,
+        approved_at TEXT,
+        committed_at TEXT,
+        cycle_time_minutes INTEGER,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+
+    try { db.run(`ALTER TABLE project_tasks ADD COLUMN assigned_to TEXT DEFAULT 'me' CHECK(assigned_to IN ('me', 'partner', 'both'))`); } catch { /* exists */ }
+    try { db.run(`ALTER TABLE project_tasks ADD COLUMN waiting_since TEXT`); } catch { /* exists */ }
+
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('ntfy_topic', '9soccer-bugs-roye')`);
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('last_weekly_digest', '')`);
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('weekly_digest_content', '')`);
   }
 
   // Migration 9 -> 10: project_parameters + golden_prompts tables

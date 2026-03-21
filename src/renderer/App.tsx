@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { getLastSaveTime } from './services/api';
 import Dashboard from './pages/Dashboard';
 import ProjectDetail from './pages/ProjectDetail';
@@ -15,11 +15,11 @@ import PromptAnalyticsPage from './pages/PromptAnalyticsPage';
 import IntelligencePage from './pages/IntelligencePage';
 import BillingPage from './pages/BillingPage';
 import PipelinePage from './pages/PipelinePage';
+import BriefingPage from './pages/BriefingPage';
 import IdeaCollector from './components/IdeaCollector';
 import GlobalSearch from './components/GlobalSearch';
 import NotificationBell from './components/NotificationBell';
 import WorkspaceSwitcher from './components/WorkspaceSwitcher';
-import MorningBriefing from './components/MorningBriefing';
 import { APP_VERSION } from '../shared/constants';
 import { getActiveTimer, STORAGE_KEY } from './components/SessionTimer';
 import { LanguageContext, useLanguageProvider } from './hooks/useLanguage';
@@ -50,19 +50,18 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err
 }
 
 const navItems = [
+  { path: '/briefing', label: 'Briefing', icon: '🌅' },
   { path: '/', label: 'Dashboard', icon: '⊞' },
   { path: '/portfolio', label: 'Portfolio', icon: '📁' },
   { path: '/kanban', label: 'Kanban', icon: '▦' },
   { path: '/revenue', label: 'Revenue', icon: '◈' },
-  { path: '/learnings', label: 'Learnings', icon: '◉' },
-  { path: '/patterns', label: 'Patterns', icon: '⬡' },
-  { path: '/synergy', label: 'Synergy', icon: '⬢' },
-  { path: '/activity', label: 'Activity', icon: '◎' },
-  { path: '/settings', label: 'Settings', icon: '⚙' },
-  { path: '/prompt-analytics', label: 'Prompt Stats', icon: '📊' },
   { path: '/intelligence', label: 'Intelligence', icon: '🧠' },
   { path: '/billing', label: 'Billing', icon: '💼' },
   { path: '/pipeline', label: 'Pipeline', icon: '📊' },
+  { path: '/activity', label: 'Activity', icon: '◎' },
+  { path: '/settings', label: 'Settings', icon: '⚙' },
+  { path: '/synergy', label: 'Synergy', icon: '⬢' },
+  { path: '/prompt-analytics', label: 'Prompt Stats', icon: '📊' },
 ];
 
 // Keyboard shortcut definitions
@@ -72,15 +71,12 @@ const SHORTCUTS: { key: string; ctrl?: boolean; alt?: boolean; shift?: boolean; 
   { key: '2', alt: true, description: 'Portfolio', action: 'nav:/portfolio' },
   { key: '3', alt: true, description: 'Kanban', action: 'nav:/kanban' },
   { key: '4', alt: true, description: 'Revenue', action: 'nav:/revenue' },
-  { key: '5', alt: true, description: 'Learnings', action: 'nav:/learnings' },
-  { key: '6', alt: true, description: 'Patterns', action: 'nav:/patterns' },
-  { key: '7', alt: true, description: 'Synergy', action: 'nav:/synergy' },
+  { key: '5', alt: true, description: 'Intelligence', action: 'nav:/intelligence' },
+  { key: '6', alt: true, description: 'Billing', action: 'nav:/billing' },
+  { key: '7', alt: true, description: 'Pipeline', action: 'nav:/pipeline' },
   { key: '8', alt: true, description: 'Activity', action: 'nav:/activity' },
-  { key: '9', alt: true, description: 'Settings', action: 'nav:/settings' },
-  { key: '0', alt: true, description: 'Prompt Stats', action: 'nav:/prompt-analytics' },
-  { key: 'i', alt: true, description: 'Intelligence', action: 'nav:/intelligence' },
-  { key: 'b', alt: true, description: 'Billing', action: 'nav:/billing' },
-  { key: 'p', alt: true, description: 'Learning Pipeline', action: 'nav:/pipeline' },
+  { key: '9', alt: true, description: 'Briefing', action: 'nav:/briefing' },
+  { key: '0', alt: true, description: 'Settings', action: 'nav:/settings' },
   { key: 'n', ctrl: true, description: 'New Project', action: 'new-project' },
   { key: '/', ctrl: false, description: 'Focus Search', action: 'search' },
 ];
@@ -145,15 +141,12 @@ const SHORTCUT_LIST = [
   ['Alt+2', 'Portfolio'],
   ['Alt+3', 'Kanban'],
   ['Alt+4', 'Revenue'],
-  ['Alt+5', 'Learnings'],
-  ['Alt+6', 'Patterns'],
-  ['Alt+7', 'Synergy'],
+  ['Alt+5', 'Intelligence'],
+  ['Alt+6', 'Billing'],
+  ['Alt+7', 'Pipeline'],
   ['Alt+8', 'Activity'],
-  ['Alt+9', 'Settings'],
-  ['Alt+0', 'Prompt Stats'],
-  ['Alt+I', 'Intelligence'],
-  ['Alt+B', 'Billing'],
-  ['Alt+P', 'Pipeline'],
+  ['Alt+9', 'Briefing'],
+  ['Alt+0', 'Settings'],
   ['Shift+?', 'This overlay'],
 ] as const;
 
@@ -186,21 +179,18 @@ export default function App() {
   const [lastSaved, setLastSaved] = React.useState<string | null>(null);
   const [activeTimer, setActiveTimer] = React.useState<{ projectId: number; projectName: string } | null>(null);
   const [activeWorkspaceId, setActiveWorkspaceId] = React.useState(0);
-  const [showBriefing, setShowBriefing] = React.useState(false);
   const languageValue = useLanguageProvider();
   const { showHelp, setShowHelp } = useKeyboardShortcuts(navigate);
 
+  // Auto-navigate to /briefing once per day on first open
   React.useEffect(() => {
-    const lastDismiss = localStorage.getItem('briefing_dismissed');
-    if (!lastDismiss || Date.now() - parseInt(lastDismiss) > 4 * 60 * 60 * 1000) {
-      setShowBriefing(true);
+    const lastSeen = localStorage.getItem('briefing_date');
+    const today = new Date().toISOString().slice(0, 10);
+    if (lastSeen !== today) {
+      navigate('/briefing');
+      localStorage.setItem('briefing_date', today);
     }
   }, []);
-
-  const dismissBriefing = () => {
-    localStorage.setItem('briefing_dismissed', String(Date.now()));
-    setShowBriefing(false);
-  };
 
   // Poll localStorage for active timer
   React.useEffect(() => {
@@ -227,6 +217,10 @@ export default function App() {
       '/activity': 'ZProjectManager — Activity',
       '/settings': 'ZProjectManager — Settings',
       '/prompt-analytics': 'ZProjectManager — Prompt Stats',
+      '/briefing': 'ZProjectManager — Briefing',
+      '/intelligence': 'ZProjectManager — Intelligence',
+      '/billing': 'ZProjectManager — Billing',
+      '/pipeline': 'ZProjectManager — Pipeline',
     };
     if (!isProjectPage) {
       document.title = PAGE_TITLES[currentPath] || 'ZProjectManager';
@@ -316,13 +310,15 @@ export default function App() {
           <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/pipeline" element={<PipelinePage />} />
+          <Route path="/briefing" element={<BriefingPage />} />
+          <Route path="/learnings" element={<Navigate to="/intelligence" replace />} />
+          <Route path="/patterns" element={<Navigate to="/intelligence" replace />} />
         </Routes>
       </main>
 
       <IdeaCollector />
       <GlobalSearch />
       {showHelp && <ShortcutsHelp onClose={() => setShowHelp(false)} />}
-      {showBriefing && <MorningBriefing onDismiss={dismissBriefing} />}
     </div>
     </ErrorBoundary>
     </LanguageContext.Provider>

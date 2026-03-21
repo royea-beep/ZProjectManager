@@ -1,4 +1,22 @@
 export type MessageSource = 'roye' | 'bot_output' | 'mixed' | 'unknown';
+export type MessageIntent = 'DECISION' | 'IDEA' | 'BLOCKER' | 'QUESTION' | 'BOT_OUTPUT' | 'APPROVAL';
+
+const INTENT_PATTERNS: Record<MessageIntent, RegExp[]> = {
+  DECISION: [/אני רוצה/, /נחליט/, /הלכנו על/, /סגור/, /confirmed/i, /final/i, /החלטתי/],
+  IDEA: [/מה אם/, /אולי/, /חושב ש/, /idea/i, /what if/i, /maybe/i, /כדאי ל/],
+  BLOCKER: [/תקוע/, /לא עובד/, /בעיה/, /broken/i, /stuck/i, /issue/i, /error/i, /שגיאה/],
+  QUESTION: [/\?$/, /מה ה/, /איך/, /why/i, /how/i, /what is/i],
+  BOT_OUTPUT: [/✅\s*(Done|Pushed|Shipped)/i, /FINAL REPORT/i, /Sprint \d+ (done|complete|shipped)/i],
+  APPROVAL: [/^כן$/, /^yes$/i, /^אוקי$/, /^בסדר$/, /^מעולה$/, /^מושלם$/, /^תשלח$/, /^done\.$/i],
+};
+
+export function detectIntent(text: string): MessageIntent {
+  const trimmed = text.trim();
+  for (const [intent, patterns] of Object.entries(INTENT_PATTERNS) as [MessageIntent, RegExp[]][]) {
+    if (patterns.some(p => p.test(trimmed))) return intent as MessageIntent;
+  }
+  return 'IDEA';
+}
 
 export interface ClassifiedMessage {
   source: MessageSource;

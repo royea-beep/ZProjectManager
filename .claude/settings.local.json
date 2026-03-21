@@ -115,7 +115,19 @@
       "Bash(mkdir -p \"C:/Projects/$project/docs/prompts\")",
       "Bash(mkdir -p \"C:/Projects/$project/docs/sessions\")",
       "Bash(mkdir -p \"C:/Projects/shared-utils/docs/workflow\")",
-      "Bash(grep -n \"NextStepsWidget\\\\|Overview\\\\|tab === ''''Overview''''\" src/renderer/pages/ProjectDetail.tsx)"
+      "Bash(grep -n \"NextStepsWidget\\\\|Overview\\\\|tab === ''''Overview''''\" src/renderer/pages/ProjectDetail.tsx)",
+      "Bash(sort echo:*)",
+      "Bash(sort find:*)",
+      "Bash(head -10 find C:/Users/royea/AppData -name mega_prompts*.md)",
+      "Bash(/dev/null echo:*)",
+      "Bash(head -10 echo ---TESTS--- find C:/Projects/shared-utils -name *.test.* -o -name *.spec.*)",
+      "Bash(cp C:/Projects/shared-utils/src/BugReporterModal.tsx C:/Projects/90soccer/src/components/BugReporterModal.tsx)",
+      "Bash(cp C:/Projects/shared-utils/src/BugReporterModal.tsx C:/Projects/KeyDrop/src/components/BugReporterModal.tsx)",
+      "Bash(cp C:/Projects/shared-utils/src/BugReporterModal.tsx C:/Projects/PostPilot/src/components/BugReporterModal.tsx)",
+      "Bash(mkdir -p C:/Projects/analyzer-standalone/src/components)",
+      "Bash(cp C:/Projects/shared-utils/src/BugReporterModal.tsx C:/Projects/analyzer-standalone/src/components/BugReporterModal.tsx)",
+      "Bash(head -100 C:/Projects/90soccer/src/components/game/HomeScreen.tsx echo ---SOUND--- find C:/Projects/90soccer/src -name *sound* -o -name *audio* -o -name *Sound*)",
+      "Bash(head -5 echo ---STREAK--- find C:/Projects/90soccer/src -name *Streak*)"
     ]
   }
 }

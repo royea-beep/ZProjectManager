@@ -274,6 +274,19 @@ export default function GPromptTab({ project }: Props) {
     setGolden(prev => prev.filter(g => g.id !== id));
   };
 
+  const handleGenerateNextSprint = async () => {
+    try {
+      const tasks = await window.api.invoke('tasks:getAll', project.id) as any[];
+      const openTasks = tasks.filter((t: any) => t.status === 'todo' || t.status === 'in_progress');
+      const prompt = await window.api.invoke('prompts:generate', {
+        projectId: project.id,
+        action: 'add-feature',
+        extraContext: `OPEN TASKS FOR NEXT SPRINT:\n${openTasks.map((t: any, i: number) => `${i + 1}. ${t.title}`).join('\n')}\n\nComplete all open tasks in one sprint.`,
+      }) as string;
+      await navigator.clipboard.writeText(prompt);
+    } catch { /* silent */ }
+  };
+
   // Grouped by category
   const categories = [...new Set(params.map(p => p.category))].sort();
   const missingCritical = params.filter(p => {
@@ -415,6 +428,12 @@ export default function GPromptTab({ project }: Props) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs text-dark-muted">Prompts you starred ⭐ from the Prompt tab. Your personal golden collection.</p>
+            <button
+              onClick={handleGenerateNextSprint}
+              className="text-xs px-3 py-1.5 rounded-lg bg-accent-green/15 text-accent-green hover:bg-accent-green/25 transition-colors shrink-0"
+            >
+              ▶ Next Sprint Ready
+            </button>
             <button onClick={handleAnalyze} className="px-3 py-1.5 text-xs bg-dark-hover border border-dark-border rounded hover:bg-dark-border transition-colors">
               🧠 Analyze Patterns
             </button>

@@ -78,6 +78,8 @@ export interface ProjectTask {
   related_session_id: number | null;
   created_at: string;
   completed_at: string | null;
+  assigned_to?: 'me' | 'partner' | 'both';
+  waiting_since?: string | null;
 }
 
 export interface TaskSubtask {

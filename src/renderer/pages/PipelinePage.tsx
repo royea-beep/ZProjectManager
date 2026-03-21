@@ -36,7 +36,7 @@ export default function PipelinePage() {
   const [insights, setInsights] = useState<QualityInsights | null>(null);
   const [megaContent, setMegaContent] = useState<MegaContent | null>(null);
   const [running, setRunning] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'insights' | 'conversation'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'insights' | 'conversation' | 'heatmap'>('overview');
   const [classifyInput, setClassifyInput] = useState('');
   const [classifyResult, setClassifyResult] = useState<any>(null);
 
@@ -106,7 +106,7 @@ export default function PipelinePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-dark-border pb-3">
-        {(['overview', 'content', 'insights', 'conversation'] as const).map(tab => (
+        {(['overview', 'content', 'insights', 'heatmap', 'conversation'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -116,7 +116,7 @@ export default function PipelinePage() {
                 : 'text-dark-muted hover:text-dark-text'
             }`}
           >
-            {tab === 'overview' ? '📊 Overview' : tab === 'content' ? '📄 mega_prompts' : tab === 'insights' ? '💡 Insights' : '📋 Conversation'}
+            {tab === 'overview' ? '📊 Overview' : tab === 'content' ? '📄 mega_prompts' : tab === 'insights' ? '💡 Insights' : tab === 'heatmap' ? '🔥 Heatmap' : '📋 Conversation'}
           </button>
         ))}
       </div>
@@ -305,6 +305,32 @@ export default function PipelinePage() {
               immediate approval, and where the gap between intention and execution appears.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Heatmap tab */}
+      {activeTab === 'heatmap' && (
+        <div>
+          <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-3">Quality heatmap by project</p>
+          {insights?.stats?.byProject && Object.keys(insights.stats.byProject).length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+              {Object.entries(insights.stats.byProject as Record<string, number>).map(([project, count]) => {
+                const avgQ = insights.stats.avgQuality || 0;
+                const color = avgQ >= 8 ? '#22c55e' : avgQ >= 6 ? '#f59e0b' : '#ef4444';
+                return (
+                  <div key={project} className="p-3 rounded-xl border border-dark-border bg-dark-bg">
+                    <p className="text-xs font-medium text-dark-text truncate">{project}</p>
+                    <p className="text-lg font-black" style={{ color }}>{count}</p>
+                    <p className="text-[10px] text-dark-muted">sessions</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-10 border border-dashed border-dark-border rounded-xl">
+              <p className="text-sm text-dark-muted">No session data yet — run pipeline first</p>
+            </div>
+          )}
         </div>
       )}
 

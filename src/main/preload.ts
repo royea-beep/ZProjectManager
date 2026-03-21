@@ -90,6 +90,10 @@ const ALLOWED_CHANNELS = new Set([
   'docs:generate-working-style', 'docs:deploy-working-style',
   // Request Parser
   'requests:parse', 'requests:save',
+  // Fix Cycle Times
+  'fix-cycles:get-stats', 'fix-cycles:record',
+  // Partnership tasks + status inference
+  'tasks:assign', 'projects:inferStatus',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

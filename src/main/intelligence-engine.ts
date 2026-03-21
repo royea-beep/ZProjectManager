@@ -50,6 +50,37 @@ export function runIntelligenceEngine(): Suggestion[] {
       });
     }
 
+    // RULE 2b: Revenue milestone prediction
+    if (p.mrr && p.mrr > 0) {
+      const mrrHistory = getAll(`
+        SELECT value as mrr, created_at FROM project_metrics
+        WHERE project_id = ? AND metric_name = 'mrr'
+        ORDER BY created_at DESC LIMIT 4
+      `, [p.id]) as any[];
+      if (mrrHistory.length >= 2) {
+        const growth = (mrrHistory[0].mrr - mrrHistory[1].mrr) / mrrHistory[1].mrr;
+        if (growth > 0) {
+          const milestones = [5000, 10000, 25000, 50000, 100000];
+          for (const target of milestones) {
+            if (p.mrr >= target) continue;
+            const monthsToTarget = Math.ceil(Math.log(target / p.mrr) / Math.log(1 + growth));
+            if (monthsToTarget <= 12) {
+              suggestions.push({
+                project_id: p.id,
+                suggestion_type: 'revenue',
+                title: `${p.name} hits ₪${target.toLocaleString()} MRR in ~${monthsToTarget * 30} days`,
+                description: `Current MRR: ₪${p.mrr.toLocaleString()} · Monthly growth: ${Math.round(growth * 100)}%`,
+                priority: 6,
+                action_prompt_id: null,
+                expires_at: tomorrow,
+              });
+              break;
+            }
+          }
+        }
+      }
+    }
+
     // RULE 3: Live project, no revenue
     if ((p.stage === 'live' || p.stage === 'scaling') && (!p.mrr || p.mrr === 0)) {
       suggestions.push({
@@ -212,6 +243,96 @@ export function runCrossProjectAnalysis(): void {
       title: `${noMemory.length} projects have no MEMORY.md`,
       description: `${noMemory.slice(0, 4).map((p: any) => p.name).join(', ')}${noMemory.length > 4 ? ` +${noMemory.length - 4}` : ''} — each Claude session starts from zero.`,
       affected_project_ids: JSON.stringify(noMemory.map((p: any) => p.id)),
+      severity: 'warning',
+    });
+  }
+
+  // Check 5: Same table name in 3+ projects — extract suggestion
+  const projectsWithParams = projects.filter((p: any) => p.parameters_json);
+  const tablePatterns: Record<string, string[]> = {};
+  for (const p of projectsWithParams) {
+    try {
+      const params = JSON.parse(p.parameters_json);
+      for (const table of (params.tableNames || [])) {
+        const key = String(table).toLowerCase().replace(/s$/, '');
+        if (!tablePatterns[key]) tablePatterns[key] = [];
+        tablePatterns[key].push(p.name);
+      }
+    } catch { /* skip */ }
+  }
+  for (const [pattern, projs] of Object.entries(tablePatterns)) {
+    if (projs.length >= 3) {
+      insights.push({
+        insight_type: 'opportunity',
+        title: `"${pattern}" table in ${projs.length} projects — consider shared schema`,
+        description: `${projs.slice(0, 3).join(', ')} all have similar "${pattern}" table. Extract to shared-utils or document the pattern.`,
+        affected_project_ids: JSON.stringify(projs),
+        severity: 'info',
+      });
+    }
+  }
+
+  // Check 6: Shared-utils usage scan
+  const sharedUtilsPath = 'C:/Projects/shared-utils/src';
+  if (fs.existsSync(sharedUtilsPath)) {
+    try {
+      const utilFiles = fs.readdirSync(sharedUtilsPath)
+        .filter((f: string) => f.endsWith('.ts') && !f.endsWith('.d.ts'))
+        .map((f: string) => f.replace('.ts', ''));
+      for (const util of utilFiles) {
+        const usedBy: string[] = [];
+        for (const p of projects) {
+          if (!p.repo_path || !fs.existsSync(p.repo_path)) continue;
+          const srcPath = path.join(p.repo_path, 'src');
+          if (!fs.existsSync(srcPath)) continue;
+          try {
+            const { execSync } = require('child_process');
+            const result = execSync(
+              `grep -r "${util}" "${srcPath}" --include="*.ts" --include="*.tsx" -l 2>/dev/null`,
+              { encoding: 'utf8', timeout: 5000 }
+            ).trim();
+            if (result) usedBy.push(p.name);
+          } catch { /* not used */ }
+        }
+        if (usedBy.length > 0) {
+          runQuery('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', [
+            `shared_util_usage_${util}`,
+            JSON.stringify(usedBy),
+          ]);
+        }
+      }
+    } catch { /* skip if scan fails */ }
+  }
+
+  // Check 7: Auto-compute health_score from real signals
+  for (const p of projects) {
+    let health = 100;
+    if (p.github_ci_status === 'failing') health -= 40;
+    if ((p.github_open_prs || 0) > 5) health -= 15;
+    if (p.last_worked_at && new Date(p.last_worked_at) < new Date(Date.now() - 30 * 86400000)) health -= 20;
+    const memExists = p.repo_path && fs.existsSync(path.join(p.repo_path, 'MEMORY.md'));
+    if (!memExists) health -= 10;
+    health = Math.max(0, Math.min(100, health));
+    runQuery('UPDATE projects SET health_score = ? WHERE id = ?', [health, p.id]);
+  }
+
+  // Check 8: RLS audit — projects with Supabase tables but no RLS confirmed
+  const rlsRiskProjects: string[] = [];
+  for (const p of projectsWithParams) {
+    try {
+      const params = JSON.parse(p.parameters_json);
+      const tables = params.tableNames || [];
+      if (tables.length > 0 && !params.hasRLS) {
+        rlsRiskProjects.push(p.name);
+      }
+    } catch { /* skip */ }
+  }
+  if (rlsRiskProjects.length > 0) {
+    insights.push({
+      insight_type: 'security',
+      title: `RLS audit needed: ${rlsRiskProjects.length} projects`,
+      description: `${rlsRiskProjects.join(', ')} — Supabase tables detected but RLS not confirmed. Run: SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public';`,
+      affected_project_ids: JSON.stringify(rlsRiskProjects),
       severity: 'warning',
     });
   }

@@ -36,3 +36,6 @@
 - Hebrew + image (Claude Vision) + audio (OpenAI Whisper)
 - OPENAI_API_KEY confirmed set
 - Twilio webhook URL: https://gxrpunvhjcrzqnitbqah.supabase.co/functions/v1/whatsapp-bot-handler
+
+## Working Style
+Read: docs/ROYE_WORKING_STYLE.md before starting any session

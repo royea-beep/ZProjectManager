@@ -26,19 +26,26 @@ export default function IntelligencePage() {
   const navigate = useNavigate();
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [insights, setInsights] = useState<any[]>([]);
+  const [learnings, setLearnings] = useState<any[]>([]);
+  const [patterns, setPatterns] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastRun, setLastRun] = useState<Date | null>(null);
   const [generatingPrompt, setGeneratingPrompt] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'suggestions' | 'insights' | 'patterns'>('suggestions');
 
   useEffect(() => { loadAll(); }, []);
 
   const loadAll = useCallback(async () => {
-    const [s, i] = await Promise.all([
+    const [s, i, l, p] = await Promise.all([
       window.api.invoke('intelligence:get-suggestions'),
       window.api.invoke('intelligence:get-cross-project'),
+      window.api.invoke('learnings:getGlobal').catch(() => []),
+      window.api.invoke('patterns:getAll').catch(() => []),
     ]);
     setSuggestions((s as any[]) || []);
     setInsights((i as any[]) || []);
+    setLearnings((l as any[]) || []);
+    setPatterns((p as any[]) || []);
     setLastRun(new Date());
   }, []);
 
@@ -105,6 +112,56 @@ export default function IntelligencePage() {
           </button>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 mb-5 border-b border-dark-border pb-1">
+          {([
+            { id: 'suggestions', label: `Actions (${suggestions.length})` },
+            { id: 'insights', label: `Insights (${insights.length})` },
+            { id: 'patterns', label: `Patterns & Learnings (${patterns.length + learnings.length})` },
+          ] as { id: typeof activeTab; label: string }[]).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`text-xs px-3 py-1.5 rounded-t transition-colors ${
+                activeTab === tab.id
+                  ? 'text-accent-blue border-b-2 border-accent-blue'
+                  : 'text-dark-muted hover:text-dark-text'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'patterns' && (
+          <div className="space-y-3">
+            {patterns.map((p: any) => (
+              <div key={p.id} className="p-3 rounded-xl border border-dark-border bg-dark-surface">
+                <p className="text-xs font-medium text-dark-text mb-1">{p.pattern}</p>
+                {p.recommendation && <p className="text-[10px] text-dark-muted leading-relaxed">{p.recommendation}</p>}
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[9px] text-dark-muted/50">confidence: {Math.round((p.confidence || 0) * 100)}%</span>
+                </div>
+              </div>
+            ))}
+            {learnings.map((l: any) => (
+              <div key={l.id} className="p-3 rounded-xl border border-dark-border/50 bg-dark-bg">
+                <p className="text-xs text-dark-text leading-relaxed">{l.learning}</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-dark-surface text-dark-muted">{l.category}</span>
+                  {l.impact_score >= 8 && <span className="text-[9px] text-accent-blue">★ High impact</span>}
+                </div>
+              </div>
+            ))}
+            {patterns.length === 0 && learnings.length === 0 && (
+              <div className="text-center py-10 border border-dashed border-dark-border rounded-xl">
+                <p className="text-sm text-dark-muted">No patterns or learnings yet</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {(activeTab === 'suggestions' || activeTab === 'insights') && (
         <div className="grid grid-cols-2 gap-6">
           {/* LEFT: Per-project suggestions */}
           <div>
@@ -195,6 +252,7 @@ export default function IntelligencePage() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Right sidebar: Next Steps */}

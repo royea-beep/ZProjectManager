@@ -1013,6 +1013,28 @@ function TasksTab({ projectId, repoPath }: { projectId: number; repoPath: string
                     {PRIORITY_LABELS[task.priority] || task.priority}
                   </button>
 
+                  {/* Partnership assignment badge */}
+                  {(task.assigned_to || task.assigned_to === 'partner') && (
+                    <button
+                      onClick={() => {
+                        const next = !task.assigned_to || task.assigned_to === 'me' ? 'partner' : task.assigned_to === 'partner' ? 'both' : 'me';
+                        window.api.invoke('tasks:assign', task.id, next).then(() => refresh());
+                      }}
+                      className={`text-[9px] px-1.5 py-0.5 rounded ml-1 mb-1 inline-block transition-colors ${
+                        task.assigned_to === 'partner' ? 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20' :
+                        task.assigned_to === 'both' ? 'bg-blue-400/10 text-blue-400 hover:bg-blue-400/20' :
+                        'bg-dark-hover text-dark-muted hover:bg-dark-surface'
+                      }`}
+                    >
+                      {task.assigned_to === 'partner' ? '⏳ partner' : task.assigned_to === 'both' ? '👥 shared' : '👤 mine'}
+                      {task.assigned_to === 'partner' && task.waiting_since && (
+                        <span className="ml-1 opacity-60">
+                          {Math.round((Date.now() - new Date(task.waiting_since).getTime()) / 86400000)}d
+                        </span>
+                      )}
+                    </button>
+                  )}
+
                   {/* Description - inline editable */}
                   {editingTask?.id === task.id && editingTask.field === 'description' ? (
                     <textarea

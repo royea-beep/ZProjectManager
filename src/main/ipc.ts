@@ -1665,6 +1665,63 @@ export function registerIpcHandlers(): void {
     }, args.sprintName, args.agents);
   });
 
+  // ── WEEKLY DIGEST — Sunday 20:00 IST ─────────────────────────────────────
+  const checkWeeklyDigest = () => {
+    try {
+      const now = new Date();
+      const israelTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));
+      const isSunday = israelTime.getDay() === 0;
+      const isEvening = israelTime.getHours() === 20 && israelTime.getMinutes() < 5;
+      if (!isSunday || !isEvening) return;
+
+      const lastDigest = getSetting('last_weekly_digest');
+      const today = israelTime.toISOString().slice(0, 10);
+      if (lastDigest === today) return;
+
+      const projects = getAll("SELECT * FROM projects WHERE status NOT IN ('archived')", []) as any[];
+      const stats = {
+        sessionsThisWeek: (getOne("SELECT COUNT(*) as count FROM project_sessions WHERE created_at > datetime('now', '-7 days')", []) as any)?.count || 0,
+        bugsFixed: (getOne("SELECT COUNT(*) as count FROM bug_reports WHERE status = 'resolved' AND created_at > datetime('now', '-7 days')", []) as any)?.count || 0,
+        topProject: projects.sort((a: any, b: any) => (b.health_score || 0) - (a.health_score || 0))[0],
+        stalledProjects: projects.filter((p: any) => p.last_worked_at && new Date(p.last_worked_at) < new Date(Date.now() - 7 * 86400000)),
+      };
+
+      const digest = `# Weekly Digest — ${now.toLocaleDateString('he-IL')}
+
+## השבוע:
+- Sessions: ${stats.sessionsThisWeek}
+- Bugs fixed: ${stats.bugsFixed}
+- Top project: ${stats.topProject?.name || '-'}
+
+## לא נגעת ב-7+ ימים:
+${stats.stalledProjects.slice(0, 5).map((p: any) => `- ${p.name}`).join('\n') || '- כולם פעילים'}
+
+## המלצה לשבוע הבא:
+בדוק את ${stats.stalledProjects[0]?.name || 'הפרויקטים'} — אולי הגיע הזמן להחליט: להמשיך, לארכב, או לפצל.`;
+
+      setSetting('weekly_digest_content', digest);
+      setSetting('last_weekly_digest', today);
+
+      // Send ntfy notification if topic configured
+      const ntfyTopic = getSetting('ntfy_topic');
+      if (ntfyTopic) {
+        fetch(`https://ntfy.sh/${ntfyTopic}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain',
+            'Title': 'Weekly Digest - ZProjectManager',
+            'Priority': 'default',
+            'Tags': 'calendar',
+          },
+          body: `${stats.sessionsThisWeek} sessions this week. ${stats.stalledProjects.length} projects stalled. Open app for full digest.`,
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.error('Weekly digest error:', e);
+    }
+  };
+  setInterval(checkWeeklyDigest, 5 * 60 * 1000); // check every 5 min
+
   // ── INTELLIGENCE ENGINE ─────────────────────────────────────────────────────
   // Run on app start (5s delay, non-blocking)
   setTimeout(() => {
@@ -1824,6 +1881,50 @@ export function registerIpcHandlers(): void {
       saved++;
     }
     return { saved };
+  });
+
+  // ── Fix Cycle Time tracking ───────────────────────────────────────────────
+  ipcMain.handle('fix-cycles:get-stats', () => {
+    return getAll(`
+      SELECT
+        severity,
+        COUNT(*) as count,
+        AVG(cycle_time_minutes) as avg_minutes,
+        MIN(cycle_time_minutes) as best_minutes,
+        MAX(cycle_time_minutes) as worst_minutes
+      FROM fix_cycle_times
+      GROUP BY severity
+    `, []);
+  });
+
+  ipcMain.handle('fix-cycles:record', (_e, data: any) => {
+    return runInsert(
+      'INSERT INTO fix_cycle_times (bug_report_id, project_name, severity, reported_at, approved_at, committed_at, cycle_time_minutes) VALUES (?,?,?,?,?,?,?)',
+      [data.bug_report_id, data.project_name, data.severity, data.reported_at, data.approved_at, data.committed_at, data.cycle_time_minutes]
+    );
+  });
+
+  // ── Partnership task assignment ───────────────────────────────────────────
+  ipcMain.handle('tasks:assign', (_e, taskId: string, assignTo: string) => {
+    runQuery(
+      `UPDATE project_tasks SET assigned_to = ?, waiting_since = ? WHERE id = ?`,
+      [assignTo, assignTo === 'partner' ? new Date().toISOString() : null, taskId]
+    );
+    return { ok: true };
+  });
+
+  // ── Auto-infer project status from signals ────────────────────────────────
+  ipcMain.handle('projects:inferStatus', (_e, projectId: number) => {
+    const p = getOne('SELECT * FROM projects WHERE id = ?', [projectId]) as any;
+    if (!p) return null;
+    let status = p.status;
+    if (p.github_ci_status === 'failing') status = 'needs-attention';
+    else if (p.stage === 'live' && p.github_ci_status === 'passing') status = 'live';
+    else if (p.last_worked_at && new Date(p.last_worked_at) > new Date(Date.now() - 7 * 86400000)) status = 'active';
+    if (status !== p.status) {
+      runQuery('UPDATE projects SET status = ? WHERE id = ?', [status, projectId]);
+    }
+    return status;
   });
 
   ipcMain.handle('pipeline:enhance-prompt', (_e, args: { prompt: string; phase: string }) => {
