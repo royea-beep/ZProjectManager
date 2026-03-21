@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 10;
+const CURRENT_SCHEMA_VERSION = 11;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -260,6 +260,49 @@ function runMigrations(fromVersion: number): void {
       ['TestFlight build 5 — add testers & smoke-test']
     );
   }
+  // Migration 10 -> 11: workspaces + work_sessions
+  if (fromVersion < 11) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS workspaces (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'mine',
+        color TEXT DEFAULT '#22c55e',
+        emoji TEXT DEFAULT '🏠',
+        client_name TEXT,
+        partner_name TEXT,
+        billing_rate INTEGER DEFAULT 0,
+        notes TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+
+    db.run(`INSERT OR IGNORE INTO workspaces (id, name, type, color, emoji) VALUES (1, 'שלי', 'mine', '#22c55e', '🏠')`);
+    db.run(`INSERT OR IGNORE INTO workspaces (id, name, type, color, emoji) VALUES (2, 'לקוחות', 'client', '#3b82f6', '💼')`);
+    db.run(`INSERT OR IGNORE INTO workspaces (id, name, type, color, emoji) VALUES (3, 'שותפויות', 'partnership', '#f59e0b', '🤝')`);
+
+    try { db.run('ALTER TABLE projects ADD COLUMN workspace_id INTEGER DEFAULT 1'); } catch { /* exists */ }
+    db.run('UPDATE projects SET workspace_id = 1 WHERE workspace_id IS NULL');
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS work_sessions (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        workspace_id INTEGER REFERENCES workspaces(id),
+        hours REAL NOT NULL,
+        description TEXT,
+        billed INTEGER DEFAULT 0,
+        date TEXT DEFAULT (date('now')),
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_work_sessions_project ON work_sessions(project_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_work_sessions_workspace ON work_sessions(workspace_id)`);
+
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('active_workspace_id', '0')`);
+  }
+
   // Migration 9 -> 10: project_parameters + golden_prompts tables
   if (fromVersion < 10) {
     db.run(`

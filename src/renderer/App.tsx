@@ -15,6 +15,8 @@ import PromptAnalyticsPage from './pages/PromptAnalyticsPage';
 import IdeaCollector from './components/IdeaCollector';
 import GlobalSearch from './components/GlobalSearch';
 import NotificationBell from './components/NotificationBell';
+import WorkspaceSwitcher from './components/WorkspaceSwitcher';
+import MorningBriefing from './components/MorningBriefing';
 import { APP_VERSION } from '../shared/constants';
 import { getActiveTimer, STORAGE_KEY } from './components/SessionTimer';
 import { LanguageContext, useLanguageProvider } from './hooks/useLanguage';
@@ -171,8 +173,22 @@ export default function App() {
   const currentPath = location.pathname;
   const [lastSaved, setLastSaved] = React.useState<string | null>(null);
   const [activeTimer, setActiveTimer] = React.useState<{ projectId: number; projectName: string } | null>(null);
+  const [activeWorkspaceId, setActiveWorkspaceId] = React.useState(0);
+  const [showBriefing, setShowBriefing] = React.useState(false);
   const languageValue = useLanguageProvider();
   const { showHelp, setShowHelp } = useKeyboardShortcuts(navigate);
+
+  React.useEffect(() => {
+    const lastDismiss = localStorage.getItem('briefing_dismissed');
+    if (!lastDismiss || Date.now() - parseInt(lastDismiss) > 4 * 60 * 60 * 1000) {
+      setShowBriefing(true);
+    }
+  }, []);
+
+  const dismissBriefing = () => {
+    localStorage.setItem('briefing_dismissed', String(Date.now()));
+    setShowBriefing(false);
+  };
 
   // Poll localStorage for active timer
   React.useEffect(() => {
@@ -227,7 +243,9 @@ export default function App() {
           <h1 className="text-lg font-bold tracking-tight">ZProjectManager</h1>
           <p className="text-xs text-dark-muted mt-0.5">Project Operating System</p>
         </div>
-        <div className="flex-1 py-2">
+        <div className="flex-1 py-2 overflow-y-auto">
+          <WorkspaceSwitcher onWorkspaceChange={setActiveWorkspaceId} />
+          <div className="border-t border-dark-border/50 mt-1 mb-1" />
           {navItems.map(item => {
             const isActive = item.path === '/'
               ? currentPath === '/' && !isProjectPage
@@ -272,13 +290,13 @@ export default function App() {
 
       <main className="flex-1 overflow-auto">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Dashboard activeWorkspaceId={activeWorkspaceId} />} />
           <Route path="/project/:id" element={<ProjectDetail />} />
           <Route path="/kanban" element={<KanbanPage />} />
           <Route path="/learnings" element={<LearningsPage />} />
           <Route path="/patterns" element={<PatternsPage />} />
           <Route path="/synergy" element={<SynergyPage />} />
-          <Route path="/portfolio" element={<PortfolioPage />} />
+          <Route path="/portfolio" element={<PortfolioPage activeWorkspaceId={activeWorkspaceId} />} />
           <Route path="/prompt-analytics" element={<PromptAnalyticsPage />} />
           <Route path="/revenue" element={<RevenuePage />} />
           <Route path="/activity" element={<ActivityPage />} />
@@ -289,6 +307,7 @@ export default function App() {
       <IdeaCollector />
       <GlobalSearch />
       {showHelp && <ShortcutsHelp onClose={() => setShowHelp(false)} />}
+      {showBriefing && <MorningBriefing onDismiss={dismissBriefing} />}
     </div>
     </ErrorBoundary>
     </LanguageContext.Provider>

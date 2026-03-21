@@ -72,6 +72,10 @@ const ALLOWED_CHANNELS = new Set([
   // Docs Generators
   'docs:generate-memory', 'docs:generate-iron-rules',
   'docs:generate-checklist', 'docs:generate-vamos',
+  // Workspaces
+  'workspaces:get-all', 'workspaces:create', 'workspaces:update', 'workspaces:delete',
+  'workspaces:get-active', 'workspaces:set-active',
+  'work-sessions:log', 'work-sessions:get', 'work-sessions:summary',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

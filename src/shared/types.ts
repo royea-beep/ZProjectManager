@@ -28,6 +28,8 @@ export interface Project {
   github_synced_at: string | null;
   // Category field (v8)
   category: string | null;
+  // Workspace (v11)
+  workspace_id: number | null;
   // Revenue fields (v7)
   mrr: number | null;
   arr: number | null;
@@ -216,6 +218,32 @@ export interface ProjectNote {
   pinned: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface Workspace {
+  id: number;
+  name: string;
+  type: 'mine' | 'client' | 'partnership';
+  color: string;
+  emoji: string;
+  client_name?: string | null;
+  partner_name?: string | null;
+  billing_rate?: number;
+  notes?: string | null;
+  is_active: number;
+  created_at: string;
+  project_count?: number;
+}
+
+export interface WorkSession {
+  id: string;
+  project_id: number;
+  workspace_id: number;
+  hours: number;
+  description?: string | null;
+  billed: number;
+  date: string;
+  created_at: string;
 }
 
 export interface WeeklyDigest {

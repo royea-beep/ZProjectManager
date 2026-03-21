@@ -301,4 +301,14 @@ export const IPC_CHANNELS = {
   GOLDEN_DELETE: 'golden:delete',
   GOLDEN_ANALYZE: 'golden:analyze',
   GOLDEN_GET_CONTEXT: 'params:getContext',
+  // Workspaces
+  WORKSPACES_GET_ALL: 'workspaces:get-all',
+  WORKSPACES_CREATE: 'workspaces:create',
+  WORKSPACES_UPDATE: 'workspaces:update',
+  WORKSPACES_DELETE: 'workspaces:delete',
+  WORKSPACES_GET_ACTIVE: 'workspaces:get-active',
+  WORKSPACES_SET_ACTIVE: 'workspaces:set-active',
+  WORK_SESSIONS_LOG: 'work-sessions:log',
+  WORK_SESSIONS_GET: 'work-sessions:get',
+  WORK_SESSIONS_SUMMARY: 'work-sessions:summary',
 } as const;

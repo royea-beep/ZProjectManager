@@ -254,7 +254,7 @@ function ProjectRow({ project, onNavigate }: ProjectRowProps) {
   );
 }
 
-export default function PortfolioPage() {
+export default function PortfolioPage({ activeWorkspaceId = 0 }: { activeWorkspaceId?: number }) {
   const navigate = useNavigate();
   const { projects, loading } = useProjects();
   const [search, setSearch] = useState('');
@@ -269,6 +269,7 @@ export default function PortfolioPage() {
 
   const filtered = useMemo(() => {
     return projects.filter(p => {
+      if (activeWorkspaceId && p.workspace_id !== activeWorkspaceId) return false;
       if (stageFilter !== 'all' && p.stage !== stageFilter) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -276,7 +277,7 @@ export default function PortfolioPage() {
       }
       return true;
     });
-  }, [projects, stageFilter, search]);
+  }, [projects, stageFilter, search, activeWorkspaceId]);
 
   // Grouped by stage in order
   const grouped = useMemo(() => {

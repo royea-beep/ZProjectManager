@@ -151,7 +151,7 @@ function SuggestionRow({ s, navigate, refresh }: { s: Suggestion; navigate: (pat
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ activeWorkspaceId = 0 }: { activeWorkspaceId?: number }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { projects, loading, refresh } = useProjects();
@@ -239,6 +239,7 @@ export default function Dashboard() {
         if (daysAgo < 14) return false;
         return true;
       }
+      if (activeWorkspaceId && p.workspace_id !== activeWorkspaceId) return false;
       if (filter !== 'all' && p.status !== filter) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -271,7 +272,7 @@ export default function Dashboard() {
     });
 
     return list;
-  }, [projects, filter, search, sortBy, enrichment]);
+  }, [projects, filter, search, sortBy, enrichment, activeWorkspaceId]);
 
   const recentlyWorked = useMemo(() => {
     return [...projects]

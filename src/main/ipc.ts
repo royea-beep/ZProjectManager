@@ -1228,19 +1228,37 @@ export function registerIpcHandlers(): void {
 
     const prompt = generateMegaPrompt(projectData, args.action, args.extraContext);
 
+    // Workspace context injection
+    const wsRow = getOne(
+      `SELECT w.type as ws_type, w.name as ws_name, w.client_name, w.partner_name, w.billing_rate
+       FROM projects p LEFT JOIN workspaces w ON w.id = p.workspace_id WHERE p.id = ?`,
+      [args.projectId]
+    ) as Record<string, unknown> | null;
+
+    let workspaceBlock = '';
+    if (wsRow?.ws_type === 'client') {
+      workspaceBlock = `\n## WORKSPACE: CLIENT — ${wsRow.client_name || wsRow.ws_name}\n- Client project — build correctly the first time, no experiments\n- Billing rate: ₪${wsRow.billing_rate || 0}/hour\n- Deliverable: confirm scope before starting\n`;
+    } else if (wsRow?.ws_type === 'partnership') {
+      workspaceBlock = `\n## WORKSPACE: PARTNERSHIP — with ${wsRow.partner_name || 'partner'}\n- Architectural changes need both partners to approve\n- Document all decisions in Decision log\n`;
+    }
+
     // Auto-inject project parameters if available
     const paramRows = getAll(
       'SELECT key, value FROM project_parameters WHERE project_id = ? AND value IS NOT NULL AND value != \'\'',
       [args.projectId]
     ) as { key: string; value: string }[];
+    let finalPrompt = prompt;
+    if (workspaceBlock) {
+      finalPrompt = finalPrompt.replace('## CONTEXT', workspaceBlock + '\n## CONTEXT');
+    }
     if (paramRows.length > 0) {
       const paramMap: Record<string, string | null> = {};
       for (const r of paramRows) paramMap[r.key] = r.value;
       const paramBlock = formatParamsAsContext(paramMap);
-      return prompt.replace('## LOCKED DECISIONS', paramBlock + '\n\n## LOCKED DECISIONS');
+      finalPrompt = finalPrompt.replace('## LOCKED DECISIONS', paramBlock + '\n\n## LOCKED DECISIONS');
     }
 
-    return prompt;
+    return finalPrompt;
   });
 
   ipcMain.handle(IPC_CHANNELS.PROMPTS_GET_ACTIONS, () => {
@@ -1471,6 +1489,90 @@ export function registerIpcHandlers(): void {
         ? 'No golden prompts yet. Star your best prompts to build a collection.'
         : `Your best prompts are for: ${topActions.map(([a]) => a).join(', ')}. Focus here for highest quality.`,
     };
+  });
+
+  // ---- WORKSPACES ----
+  ipcMain.handle(IPC_CHANNELS.WORKSPACES_GET_ALL, () => {
+    return getAll(`
+      SELECT w.id, w.name, w.type, w.color, w.emoji, w.client_name, w.partner_name,
+             w.billing_rate, w.notes, w.is_active, w.created_at,
+             COUNT(p.id) as project_count
+      FROM workspaces w
+      LEFT JOIN projects p ON p.workspace_id = w.id AND p.status != 'archived'
+      GROUP BY w.id
+      ORDER BY w.id ASC
+    `, []);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKSPACES_CREATE, (_e, data: Record<string, unknown>) => {
+    return runInsert(
+      'INSERT INTO workspaces (name, type, color, emoji, client_name, partner_name, billing_rate, notes) VALUES (?,?,?,?,?,?,?,?)',
+      [data.name, data.type || 'mine', data.color || '#22c55e', data.emoji || '🏢',
+       data.client_name || null, data.partner_name || null, data.billing_rate || 0, data.notes || null]
+    );
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKSPACES_UPDATE, (_e, id: number, data: Record<string, unknown>) => {
+    const ALLOWED = new Set(['name', 'type', 'color', 'emoji', 'client_name', 'partner_name', 'billing_rate', 'notes', 'is_active']);
+    const keys = Object.keys(data).filter(k => ALLOWED.has(k));
+    if (keys.length === 0) return { ok: true };
+    const sets = keys.map(k => `${k} = ?`).join(', ');
+    runQuery(`UPDATE workspaces SET ${sets} WHERE id = ?`, [...keys.map(k => data[k]), id]);
+    return { ok: true };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKSPACES_DELETE, (_e, id: number) => {
+    runQuery('UPDATE projects SET workspace_id = 1 WHERE workspace_id = ?', [id]);
+    runQuery('DELETE FROM workspaces WHERE id = ? AND id > 3', [id]);
+    return { ok: true };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKSPACES_GET_ACTIVE, () => {
+    const setting = getOne("SELECT value FROM app_settings WHERE key = 'active_workspace_id'", []) as { value: string } | null;
+    const id = parseInt(setting?.value || '0');
+    if (id === 0) return null;
+    return getOne('SELECT * FROM workspaces WHERE id = ?', [id]);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKSPACES_SET_ACTIVE, (_e, id: number) => {
+    runQuery("UPDATE app_settings SET value = ? WHERE key = 'active_workspace_id'", [String(id)]);
+    return { ok: true };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORK_SESSIONS_LOG, (_e, data: Record<string, unknown>) => {
+    return runInsert(
+      'INSERT INTO work_sessions (project_id, workspace_id, hours, description, billed, date) VALUES (?,?,?,?,?,?)',
+      [data.project_id, data.workspace_id, data.hours, data.description || null,
+       data.billed || 0, data.date || new Date().toISOString().slice(0, 10)]
+    );
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORK_SESSIONS_GET, (_e, projectId: number) => {
+    return getAll('SELECT * FROM work_sessions WHERE project_id = ? ORDER BY date DESC LIMIT 50', [projectId]);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORK_SESSIONS_SUMMARY, (_e, workspaceId?: number) => {
+    if (workspaceId) {
+      return getAll(`
+        SELECT p.name as project_name, p.id as project_id,
+               SUM(ws.hours) as total_hours,
+               SUM(CASE WHEN ws.billed = 1 THEN ws.hours ELSE 0 END) as billed_hours,
+               w.billing_rate
+        FROM work_sessions ws
+        JOIN projects p ON p.id = ws.project_id
+        JOIN workspaces w ON w.id = ws.workspace_id
+        WHERE ws.workspace_id = ?
+        GROUP BY p.id
+      `, [workspaceId]);
+    }
+    return getAll(`
+      SELECT w.name as workspace_name, w.type, w.billing_rate,
+             SUM(ws.hours) as total_hours,
+             SUM(CASE WHEN ws.billed = 0 THEN ws.hours ELSE 0 END) as unbilled_hours
+      FROM work_sessions ws
+      JOIN workspaces w ON w.id = ws.workspace_id
+      GROUP BY ws.workspace_id
+    `, []);
   });
 
   // ---- DOCS GENERATORS ----
