@@ -21,8 +21,9 @@ import { useToast } from '../components/Toast';
 import PromptPage from './PromptPage';
 import NextStepsWidget from '../components/NextStepsWidget';
 import GPromptTab from './GPromptTab';
+import ExpertPanelTab from './ExpertPanelTab';
 
-const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt', 'GPROMPT', 'Import', 'Docs'];
+const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt', 'GPROMPT', 'Expert Panel', 'Import', 'Docs'];
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -173,6 +174,7 @@ export default function ProjectDetail() {
         {tab === 'Activity' && <ActivityTab projectId={projectId} />}
         {tab === 'Prompt' && <PromptPage project={project} onUpdate={update} />}
         {tab === 'GPROMPT' && <GPromptTab project={project} />}
+        {tab === 'Expert Panel' && <ExpertPanelTab project={project} />}
         {tab === 'Import' && <ImportTab projectId={projectId} onImported={refresh} />}
         {tab === 'Docs' && <DocsTab projectId={projectId} project={project} />}
       </div>

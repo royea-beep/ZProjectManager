@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 14;
+const CURRENT_SCHEMA_VERSION = 15;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -421,6 +421,27 @@ function runMigrations(fromVersion: number): void {
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('ntfy_topic', '9soccer-bugs-roye')`);
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('last_weekly_digest', '')`);
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('weekly_digest_content', '')`);
+  }
+
+  // Migration 14 -> 15: expert_panel_results + API key settings
+  if (fromVersion < 15) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS expert_panel_results (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        action TEXT NOT NULL,
+        task_description TEXT NOT NULL,
+        result_json TEXT NOT NULL,
+        consensus_score REAL,
+        expert_count INTEGER,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_expert_panel_project ON expert_panel_results(project_id, created_at DESC)`);
+
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('anthropic_api_key', '')`);
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('expert_panel_enabled', 'true')`);
+    db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('expert_panel_count', '5')`);
   }
 
   // Migration 9 -> 10: project_parameters + golden_prompts tables

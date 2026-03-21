@@ -56,6 +56,11 @@ export default function SettingsPage() {
   const [githubSyncing, setGithubSyncing] = useState(false);
   const [githubSyncMsg, setGithubSyncMsg] = useState('');
 
+  // AI Expert Panel state
+  const [anthropicKey, setAnthropicKey] = useState('');
+  const [anthropicKeySaved, setAnthropicKeySaved] = useState(false);
+  const [expertPanelCount, setExpertPanelCount] = useState('5');
+
   const loadBackupData = useCallback(async () => {
     const [time, list, dir] = await Promise.all([
       api.getLastBackupTime(),
@@ -86,12 +91,22 @@ export default function SettingsPage() {
     if (token) setGithubToken(token);
   }, []);
 
+  const loadAnthropicSettings = useCallback(async () => {
+    const [key, count] = await Promise.all([
+      api.getAppSetting('anthropic_api_key'),
+      api.getAppSetting('expert_panel_count'),
+    ]);
+    if (key) setAnthropicKey(key);
+    if (count) setExpertPanelCount(count);
+  }, []);
+
   useEffect(() => {
     loadBackupData();
     loadStats();
     loadProjectsDir();
     loadGithubToken();
-  }, [loadBackupData, loadStats, loadProjectsDir, loadGithubToken]);
+    loadAnthropicSettings();
+  }, [loadBackupData, loadStats, loadProjectsDir, loadGithubToken, loadAnthropicSettings]);
 
   const handleScan = async () => {
     setScanning(true);
@@ -168,6 +183,14 @@ export default function SettingsPage() {
     setGithubTokenSaved(true);
     toast('GitHub token saved', 'success');
     setTimeout(() => setGithubTokenSaved(false), 2000);
+  };
+
+  const handleSaveAnthropicKey = async () => {
+    await api.setAppSetting('anthropic_api_key', anthropicKey.trim());
+    await api.setAppSetting('expert_panel_count', expertPanelCount);
+    setAnthropicKeySaved(true);
+    toast('Anthropic settings saved', 'success');
+    setTimeout(() => setAnthropicKeySaved(false), 2000);
   };
 
   const handleGithubSyncAll = async () => {
@@ -529,6 +552,47 @@ export default function SettingsPage() {
               {githubSyncMsg}
             </p>
           )}
+        </div>
+
+        {/* AI Expert Panel */}
+        <div className="bg-dark-surface border border-dark-border rounded-lg p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-medium">AI Expert Panel</h3>
+            <p className="text-xs text-dark-muted mt-0.5">
+              25 domain experts simulate feedback on tasks before you build them.
+              Requires an Anthropic API key (uses Claude Haiku — very cheap).
+            </p>
+          </div>
+          <div className="space-y-2 mb-3">
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={anthropicKey}
+                onChange={e => { setAnthropicKey(e.target.value); setAnthropicKeySaved(false); }}
+                placeholder="sk-ant-..."
+                className="flex-1 bg-dark-bg border border-dark-border rounded px-3 py-1.5 text-sm text-dark-text placeholder-dark-muted focus:outline-none focus:border-accent-blue font-mono"
+              />
+              <button
+                onClick={handleSaveAnthropicKey}
+                className="px-3 py-1.5 text-sm bg-accent-blue text-white rounded hover:bg-accent-blue/80 whitespace-nowrap"
+              >
+                {anthropicKeySaved ? 'Saved ✓' : 'Save'}
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-dark-muted whitespace-nowrap">Experts per panel:</label>
+              <select
+                value={expertPanelCount}
+                onChange={e => setExpertPanelCount(e.target.value)}
+                className="bg-dark-bg border border-dark-border rounded px-2 py-1 text-sm text-dark-text focus:outline-none focus:border-accent-blue"
+              >
+                {['3', '4', '5', '6', '7'].map(n => <option key={n} value={n}>{n} experts</option>)}
+              </select>
+            </div>
+          </div>
+          <p className="text-xs text-dark-muted">
+            Get your key at console.anthropic.com. ~$0.002 per panel run (5 experts × Haiku pricing).
+          </p>
         </div>
 
         {/* Danger Zone */}

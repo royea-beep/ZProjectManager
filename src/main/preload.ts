@@ -94,6 +94,8 @@ const ALLOWED_CHANNELS = new Set([
   'fix-cycles:get-stats', 'fix-cycles:record',
   // Partnership tasks + status inference
   'tasks:assign', 'projects:inferStatus',
+  // Expert Panel
+  'prompts:run-expert-panel', 'prompts:get-expert-panels', 'prompts:get-expert-panel',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

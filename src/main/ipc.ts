@@ -23,6 +23,8 @@ import { runIntelligenceEngine, runCrossProjectAnalysis } from './intelligence-e
 import { loadMegaPrompts, getSessionStats, runPipeline, getLatestMegaPromptsFile } from './pipeline-reader';
 import { classifyMessage } from './context-classifier';
 import { extractRequests, generateConfirmationMessage } from './request-extractor';
+import { runExpertPanel, formatPanelForPrompt } from './expert-panel-engine';
+import type { ExpertPanelResult } from './expert-panel-engine';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -1180,7 +1182,7 @@ export function registerIpcHandlers(): void {
   });
 
   // ---- PROMPT ENGINE ----
-  ipcMain.handle(IPC_CHANNELS.PROMPTS_GENERATE, (_e, args: { projectId: number; action: PromptAction; extraContext?: string }) => {
+  ipcMain.handle(IPC_CHANNELS.PROMPTS_GENERATE, async (_e, args: { projectId: number; action: PromptAction; extraContext?: string; withExpertPanel?: boolean }) => {
     const proj = getOne('SELECT * FROM projects WHERE id = ?', [args.projectId]);
     if (!proj) return '';
 
@@ -1260,6 +1262,21 @@ export function registerIpcHandlers(): void {
       for (const r of paramRows) paramMap[r.key] = r.value;
       const paramBlock = formatParamsAsContext(paramMap);
       finalPrompt = finalPrompt.replace('## LOCKED DECISIONS', paramBlock + '\n\n## LOCKED DECISIONS');
+    }
+
+    // Inject Expert Panel results if requested or if panel exists for this action
+    if (args.withExpertPanel !== false) {
+      const panelRow = getOne(
+        `SELECT result_json FROM expert_panel_results WHERE project_id = ? AND action = ? ORDER BY created_at DESC LIMIT 1`,
+        [args.projectId, args.action]
+      ) as { result_json: string } | null;
+      if (panelRow) {
+        try {
+          const panel = JSON.parse(panelRow.result_json) as ExpertPanelResult;
+          const panelBlock = formatPanelForPrompt(panel);
+          finalPrompt = finalPrompt.replace('## CONTEXT', panelBlock + '\n\n## CONTEXT');
+        } catch { /* skip malformed panel */ }
+      }
     }
 
     return finalPrompt;
@@ -1925,6 +1942,66 @@ ${stats.stalledProjects.slice(0, 5).map((p: any) => `- ${p.name}`).join('\n') ||
       runQuery('UPDATE projects SET status = ? WHERE id = ?', [status, projectId]);
     }
     return status;
+  });
+
+  // ── Expert Panel Engine ───────────────────────────────────────────────────
+  ipcMain.handle('prompts:run-expert-panel', async (_e, args: {
+    projectId: number;
+    action: string;
+    taskDescription: string;
+  }) => {
+    const proj = getOne('SELECT * FROM projects WHERE id = ?', [args.projectId]) as Record<string, unknown> | null;
+    if (!proj) return null;
+
+    const anthropicKey = getSetting('anthropic_api_key') || '';
+    if (!anthropicKey) throw new Error('Anthropic API key not configured. Set it in Settings → AI Expert Panel.');
+
+    const countStr = getSetting('expert_panel_count') || '5';
+    const expertCount = Math.max(3, Math.min(7, parseInt(countStr, 10) || 5));
+
+    let techStack = '';
+    try { techStack = JSON.parse(proj.tech_stack as string || '[]').join(', '); }
+    catch { techStack = String(proj.tech_stack || ''); }
+
+    const tags = getAll('SELECT tag FROM project_tags WHERE project_id = ?', [args.projectId]) as { tag: string }[];
+    const sessions = getAll(
+      'SELECT summary FROM project_sessions WHERE project_id = ? ORDER BY session_date DESC LIMIT 2',
+      [args.projectId]
+    ) as { summary: string | null }[];
+
+    const panel = await runExpertPanel({
+      action: args.action,
+      taskDescription: args.taskDescription,
+      projectName: proj.name as string,
+      projectType: proj.type as string || 'saas',
+      projectTags: tags.map(t => t.tag),
+      techStack,
+      currentState: sessions.map(s => s.summary).filter(Boolean).join(' | ') || 'No recent sessions',
+      anthropicKey,
+      expertCount,
+    });
+
+    runInsert(
+      `INSERT INTO expert_panel_results (project_id, action, task_description, result_json, consensus_score, expert_count)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [args.projectId, args.action, args.taskDescription, JSON.stringify(panel), panel.consensusScore, panel.experts.length]
+    );
+
+    return panel;
+  });
+
+  ipcMain.handle('prompts:get-expert-panels', (_e, projectId: number) => {
+    return getAll(
+      `SELECT id, action, task_description, consensus_score, expert_count, created_at
+       FROM expert_panel_results WHERE project_id = ? ORDER BY created_at DESC LIMIT 20`,
+      [projectId]
+    );
+  });
+
+  ipcMain.handle('prompts:get-expert-panel', (_e, panelId: string) => {
+    const row = getOne('SELECT result_json FROM expert_panel_results WHERE id = ?', [panelId]) as { result_json: string } | null;
+    if (!row) return null;
+    try { return JSON.parse(row.result_json); } catch { return null; }
   });
 
   ipcMain.handle('pipeline:enhance-prompt', (_e, args: { prompt: string; phase: string }) => {
