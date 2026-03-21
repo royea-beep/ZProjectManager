@@ -289,4 +289,16 @@ export const IPC_CHANNELS = {
   SESSIONS_GET_ALL_LOGS: 'sessions:get-all-logs',
   SESSIONS_ANALYZE_PATTERNS: 'sessions:analyze-patterns',
   SESSIONS_IMPORT_CLAUDE: 'sessions:import-claude-output',
+  // GPROMPT — Project Parameters
+  PARAMS_EXTRACT: 'params:extract',
+  PARAMS_GET: 'params:get',
+  PARAMS_SAVE: 'params:save',
+  PARAMS_DELETE: 'params:delete',
+  PARAMS_BULK_SAVE: 'params:bulkSave',
+  // GPROMPT — Golden Prompts
+  GOLDEN_SAVE: 'golden:save',
+  GOLDEN_GET_ALL: 'golden:getAll',
+  GOLDEN_DELETE: 'golden:delete',
+  GOLDEN_ANALYZE: 'golden:analyze',
+  GOLDEN_GET_CONTEXT: 'params:getContext',
 } as const;

@@ -5,6 +5,7 @@ import { ACTION_GROUPS, ACTION_LABELS } from '../../shared/prompt-templates';
 import { PROJECT_CATEGORIES } from '../../shared/prompt-templates';
 import type { Project } from '../../shared/types';
 import { useToast } from '../components/Toast';
+import { saveGoldenPrompt, getParamsAsContext } from '../services/api';
 
 interface PromptPageProps {
   project: Project;
@@ -33,6 +34,9 @@ export default function PromptPage({ project, onUpdate }: PromptPageProps) {
 
   // Shared
   const [mainTab, setMainTab] = useState<MainTab>('actions');
+  const [starred, setStarred] = useState(false);
+  const [injectingParams, setInjectingParams] = useState(false);
+  const [useParams, setUseParams] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -129,6 +133,40 @@ export default function PromptPage({ project, onUpdate }: PromptPageProps) {
     toast('Prompt copied to clipboard', 'success');
     setTimeout(() => setCopied(false), 2000);
   }, [generatedPrompt, toast]);
+
+  const handleStar = useCallback(async () => {
+    if (!generatedPrompt) return;
+    await saveGoldenPrompt({
+      projectId: project.id,
+      projectName: project.name,
+      promptText: generatedPrompt,
+      promptType: mainTab === 'actions' ? 'action' : 'situational',
+      promptId: mainTab === 'actions' ? selectedAction || undefined : selectedSituation?.id,
+      projectStage: project.stage || undefined,
+      projectCategory: project.category || undefined,
+      actionType: mainTab === 'actions' ? (selectedAction || undefined) : selectedSituation?.id,
+    });
+    setStarred(true);
+    toast('⭐ Saved to Golden Prompts', 'success');
+    setTimeout(() => setStarred(false), 2000);
+  }, [generatedPrompt, mainTab, project, selectedAction, selectedSituation, toast]);
+
+  const handleInjectParams = useCallback(async () => {
+    if (!generatedPrompt) return;
+    setInjectingParams(true);
+    try {
+      const ctx = await getParamsAsContext(project.id);
+      if (!ctx || ctx.trim() === '') {
+        toast('No parameters found. Go to GPROMPT tab → Extract from Codebase', 'error');
+        return;
+      }
+      const enhanced = generatedPrompt + '\n\n' + ctx;
+      await navigator.clipboard.writeText(enhanced);
+      toast('✅ GPROMPT copied — parameters injected', 'success');
+    } finally {
+      setInjectingParams(false);
+    }
+  }, [generatedPrompt, project.id, toast]);
 
   const handleCategoryChange = async (category: string) => {
     await onUpdate({ category });
@@ -292,6 +330,27 @@ export default function PromptPage({ project, onUpdate }: PromptPageProps) {
 
               {generatedPrompt && <CopyButton copied={copied} onCopy={handleCopy} />}
               {generatedPrompt && (
+                <button
+                  onClick={handleStar}
+                  title="Save to Golden Prompts"
+                  className={`px-2 py-1.5 text-xs rounded border transition-colors ${
+                    starred ? 'bg-yellow-400/20 border-yellow-400/40 text-yellow-400' : 'bg-dark-hover border-dark-border text-dark-muted hover:text-yellow-400 hover:border-yellow-400/40'
+                  }`}
+                >
+                  {starred ? '⭐ Starred' : '☆ Star'}
+                </button>
+              )}
+              {generatedPrompt && (
+                <button
+                  onClick={handleInjectParams}
+                  disabled={injectingParams}
+                  title="Copy prompt + project parameters (GPROMPT mode)"
+                  className="px-2 py-1.5 text-xs rounded border border-accent-blue/30 text-accent-blue bg-accent-blue/5 hover:bg-accent-blue/15 transition-colors disabled:opacity-50"
+                >
+                  {injectingParams ? '⏳' : '⚡ GPROMPT'}
+                </button>
+              )}
+              {generatedPrompt && (
                 <span className={`text-xs ml-auto ${getCharColor(promptLen)}`}>
                   {promptLen.toLocaleString()} chars · ~{Math.round(promptLen / 4).toLocaleString()} tokens
                 </span>
@@ -366,6 +425,27 @@ export default function PromptPage({ project, onUpdate }: PromptPageProps) {
                     {generating ? 'Generating...' : 'Generate Prompt'}
                   </button>
                   {generatedPrompt && <CopyButton copied={copied} onCopy={handleCopy} />}
+                  {generatedPrompt && (
+                    <button
+                      onClick={handleStar}
+                      title="Save to Golden Prompts"
+                      className={`px-2 py-1.5 text-xs rounded border transition-colors ${
+                        starred ? 'bg-yellow-400/20 border-yellow-400/40 text-yellow-400' : 'bg-dark-hover border-dark-border text-dark-muted hover:text-yellow-400 hover:border-yellow-400/40'
+                      }`}
+                    >
+                      {starred ? '⭐ Starred' : '☆ Star'}
+                    </button>
+                  )}
+                  {generatedPrompt && (
+                    <button
+                      onClick={handleInjectParams}
+                      disabled={injectingParams}
+                      title="Copy prompt + project parameters (GPROMPT mode)"
+                      className="px-2 py-1.5 text-xs rounded border border-accent-blue/30 text-accent-blue bg-accent-blue/5 hover:bg-accent-blue/15 transition-colors disabled:opacity-50"
+                    >
+                      {injectingParams ? '⏳' : '⚡ GPROMPT'}
+                    </button>
+                  )}
                   {generatedPrompt && (
                     <span className={`text-xs ml-auto ${getCharColor(promptLen)}`}>
                       {promptLen.toLocaleString()} chars · ~{Math.round(promptLen / 4).toLocaleString()} tokens

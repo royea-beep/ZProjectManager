@@ -18,6 +18,7 @@ import type { Situation } from './situational-prompts';
 import { saveSessionLog, readAllSessionLogs, analyzeSessionPatterns } from './session-logger';
 import type { SessionEntry } from './session-logger';
 import { parseClaudeOutput } from './conversation-importer';
+import { extractProjectParameters, parametersToDbRows, formatParamsAsContext } from './parameter-extractor';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -1317,5 +1318,144 @@ export function registerIpcHandlers(): void {
       return getAll('SELECT * FROM prompt_usage WHERE project_id = ? ORDER BY used_at DESC LIMIT 100', [projectId]);
     }
     return getAll('SELECT * FROM prompt_usage ORDER BY used_at DESC LIMIT 200');
+  });
+
+  // ---- GPROMPT: PROJECT PARAMETERS ----
+  ipcMain.handle(IPC_CHANNELS.PARAMS_EXTRACT, (_e, args: { projectId: number; projectPath: string }) => {
+    const params = extractProjectParameters(args.projectPath);
+    const rows = parametersToDbRows(params);
+    // Upsert all extracted rows
+    for (const row of rows) {
+      const existing = getOne(
+        'SELECT id FROM project_parameters WHERE project_id = ? AND key = ?',
+        [args.projectId, row.key]
+      );
+      if (existing) {
+        runQuery(
+          `UPDATE project_parameters SET value = ?, is_auto_extracted = 1, updated_at = datetime('now') WHERE project_id = ? AND key = ?`,
+          [row.value, args.projectId, row.key]
+        );
+      } else {
+        runInsert(
+          'INSERT INTO project_parameters (project_id, key, category, value, is_auto_extracted) VALUES (?, ?, ?, ?, 1)',
+          [args.projectId, row.key, row.category, row.value]
+        );
+      }
+    }
+    return getAll('SELECT * FROM project_parameters WHERE project_id = ? ORDER BY category, key', [args.projectId]);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PARAMS_GET, (_e, projectId: number) => {
+    return getAll('SELECT * FROM project_parameters WHERE project_id = ? ORDER BY category, key', [projectId]);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PARAMS_SAVE, (_e, args: { projectId: number; key: string; category: string; value: string | null }) => {
+    const existing = getOne(
+      'SELECT id FROM project_parameters WHERE project_id = ? AND key = ?',
+      [args.projectId, args.key]
+    );
+    if (existing) {
+      runQuery(
+        `UPDATE project_parameters SET value = ?, is_auto_extracted = 0, updated_at = datetime('now') WHERE project_id = ? AND key = ?`,
+        [args.value, args.projectId, args.key]
+      );
+    } else {
+      runInsert(
+        'INSERT INTO project_parameters (project_id, key, category, value, is_auto_extracted) VALUES (?, ?, ?, ?, 0)',
+        [args.projectId, args.key, args.category, args.value]
+      );
+    }
+    return true;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PARAMS_BULK_SAVE, (_e, args: { projectId: number; params: Array<{ key: string; category: string; value: string | null }> }) => {
+    for (const p of args.params) {
+      const existing = getOne(
+        'SELECT id FROM project_parameters WHERE project_id = ? AND key = ?',
+        [args.projectId, p.key]
+      );
+      if (existing) {
+        runQuery(
+          `UPDATE project_parameters SET value = ?, is_auto_extracted = 0, updated_at = datetime('now') WHERE project_id = ? AND key = ?`,
+          [p.value, args.projectId, p.key]
+        );
+      } else {
+        runInsert(
+          'INSERT INTO project_parameters (project_id, key, category, value, is_auto_extracted) VALUES (?, ?, ?, ?, 0)',
+          [args.projectId, p.key, p.category, p.value]
+        );
+      }
+    }
+    return getAll('SELECT * FROM project_parameters WHERE project_id = ? ORDER BY category, key', [args.projectId]);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PARAMS_DELETE, (_e, args: { projectId: number; key: string }) => {
+    runQuery('DELETE FROM project_parameters WHERE project_id = ? AND key = ?', [args.projectId, args.key]);
+    return true;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GOLDEN_GET_CONTEXT, (_e, projectId: number) => {
+    const rows = getAll('SELECT key, value FROM project_parameters WHERE project_id = ? AND value IS NOT NULL AND value != \'\'', [projectId]) as { key: string; value: string }[];
+    const paramMap: Record<string, string | null> = {};
+    for (const r of rows) paramMap[r.key] = r.value;
+    return formatParamsAsContext(paramMap);
+  });
+
+  // ---- GPROMPT: GOLDEN PROMPTS ----
+  ipcMain.handle(IPC_CHANNELS.GOLDEN_SAVE, (_e, args: {
+    projectId?: number; projectName?: string; promptText: string; promptType: string;
+    promptId?: string; projectStage?: string; projectCategory?: string; actionType?: string; notes?: string;
+  }) => {
+    return runInsert(
+      `INSERT INTO golden_prompts (project_id, project_name, prompt_text, prompt_type, prompt_id, project_stage, project_category, action_type, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [args.projectId ?? null, args.projectName ?? null, args.promptText, args.promptType,
+       args.promptId ?? null, args.projectStage ?? null, args.projectCategory ?? null,
+       args.actionType ?? null, args.notes ?? null]
+    );
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GOLDEN_GET_ALL, (_e, projectId?: number) => {
+    if (projectId) {
+      return getAll('SELECT * FROM golden_prompts WHERE project_id = ? ORDER BY created_at DESC', [projectId]);
+    }
+    return getAll('SELECT * FROM golden_prompts ORDER BY created_at DESC LIMIT 100');
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GOLDEN_DELETE, (_e, id: string) => {
+    runQuery('DELETE FROM golden_prompts WHERE id = ?', [id]);
+    return true;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GOLDEN_ANALYZE, (_e, projectId?: number) => {
+    // Find most common action types, categories, and patterns in starred prompts
+    const rows = (projectId
+      ? getAll('SELECT * FROM golden_prompts WHERE project_id = ? ORDER BY created_at DESC LIMIT 50', [projectId])
+      : getAll('SELECT * FROM golden_prompts ORDER BY created_at DESC LIMIT 100')
+    ) as Record<string, unknown>[];
+
+    const actionCounts: Record<string, number> = {};
+    const categoryCounts: Record<string, number> = {};
+    const stageCounts: Record<string, number> = {};
+
+    for (const r of rows) {
+      if (r.action_type) actionCounts[r.action_type as string] = (actionCounts[r.action_type as string] || 0) + 1;
+      if (r.project_category) categoryCounts[r.project_category as string] = (categoryCounts[r.project_category as string] || 0) + 1;
+      if (r.project_stage) stageCounts[r.project_stage as string] = (stageCounts[r.project_stage as string] || 0) + 1;
+    }
+
+    const topActions = Object.entries(actionCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const topCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const topStages = Object.entries(stageCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+    return {
+      totalStarred: rows.length,
+      topActions,
+      topCategories,
+      topStages,
+      insight: rows.length === 0
+        ? 'No golden prompts yet. Star your best prompts to build a collection.'
+        : `Your best prompts are for: ${topActions.map(([a]) => a).join(', ')}. Focus here for highest quality.`,
+    };
   });
 }

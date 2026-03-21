@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 9;
+const CURRENT_SCHEMA_VERSION = 10;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -260,6 +260,40 @@ function runMigrations(fromVersion: number): void {
       ['TestFlight build 5 — add testers & smoke-test']
     );
   }
+  // Migration 9 -> 10: project_parameters + golden_prompts tables
+  if (fromVersion < 10) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS project_parameters (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        key TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'general',
+        value TEXT,
+        is_auto_extracted INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(project_id, key)
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_params_project ON project_parameters(project_id)`);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS golden_prompts (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+        project_name TEXT,
+        prompt_text TEXT NOT NULL,
+        prompt_type TEXT NOT NULL,
+        prompt_id TEXT,
+        project_stage TEXT,
+        project_category TEXT,
+        action_type TEXT,
+        notes TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_golden_project ON golden_prompts(project_id)`);
+  }
+
   // Migration 8 -> 9: prompt_usage table for learning which prompts work best
   if (fromVersion < 9) {
     db.run(`

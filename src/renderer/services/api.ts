@@ -384,6 +384,61 @@ export const updatePromptOutcome = (args: { id: string; outcome: string; notes?:
 export const getPromptUsage = (projectId?: number) =>
   invoke('prompts:get-usage', projectId) as Promise<PromptUsageEntry[]>;
 
+// GPROMPT — Project Parameters
+export interface ProjectParameter {
+  id: number;
+  project_id: number;
+  key: string;
+  category: string;
+  value: string | null;
+  is_auto_extracted: number;
+  updated_at: string;
+}
+export const extractProjectParams = (args: { projectId: number; projectPath: string }) =>
+  invoke(IPC_CHANNELS.PARAMS_EXTRACT, args) as Promise<ProjectParameter[]>;
+export const getProjectParams = (projectId: number) =>
+  invoke(IPC_CHANNELS.PARAMS_GET, projectId) as Promise<ProjectParameter[]>;
+export const saveProjectParam = (args: { projectId: number; key: string; category: string; value: string | null }) =>
+  invoke(IPC_CHANNELS.PARAMS_SAVE, args) as Promise<boolean>;
+export const deleteProjectParam = (args: { projectId: number; key: string }) =>
+  invoke(IPC_CHANNELS.PARAMS_DELETE, args) as Promise<boolean>;
+export const bulkSaveParams = (args: { projectId: number; params: Array<{ key: string; category: string; value: string | null }> }) =>
+  invoke(IPC_CHANNELS.PARAMS_BULK_SAVE, args) as Promise<ProjectParameter[]>;
+export const getParamsAsContext = (projectId: number) =>
+  invoke(IPC_CHANNELS.GOLDEN_GET_CONTEXT, projectId) as Promise<string>;
+
+// GPROMPT — Golden Prompts
+export interface GoldenPrompt {
+  id: string;
+  project_id: number | null;
+  project_name: string | null;
+  prompt_text: string;
+  prompt_type: string;
+  prompt_id: string | null;
+  project_stage: string | null;
+  project_category: string | null;
+  action_type: string | null;
+  notes: string | null;
+  created_at: string;
+}
+export interface GoldenAnalysis {
+  totalStarred: number;
+  topActions: [string, number][];
+  topCategories: [string, number][];
+  topStages: [string, number][];
+  insight: string;
+}
+export const saveGoldenPrompt = (args: {
+  projectId?: number; projectName?: string; promptText: string; promptType: string;
+  promptId?: string; projectStage?: string; projectCategory?: string; actionType?: string; notes?: string;
+}) => invoke(IPC_CHANNELS.GOLDEN_SAVE, args) as Promise<string>;
+export const getGoldenPrompts = (projectId?: number) =>
+  invoke(IPC_CHANNELS.GOLDEN_GET_ALL, projectId) as Promise<GoldenPrompt[]>;
+export const deleteGoldenPrompt = (id: string) =>
+  invoke(IPC_CHANNELS.GOLDEN_DELETE, id) as Promise<boolean>;
+export const analyzeGoldenPrompts = (projectId?: number) =>
+  invoke(IPC_CHANNELS.GOLDEN_ANALYZE, projectId) as Promise<GoldenAnalysis>;
+
 // Revenue
 import type { RevenueEntry } from '../../shared/types';
 export const getRevenueEntries = () => invoke(IPC_CHANNELS.REVENUE_GET_ALL) as Promise<RevenueEntry[]>;

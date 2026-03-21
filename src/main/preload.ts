@@ -64,6 +64,11 @@ const ALLOWED_CHANNELS = new Set([
   // Session Logger
   'sessions:save-log', 'sessions:get-all-logs', 'sessions:analyze-patterns',
   'sessions:import-claude-output',
+  // GPROMPT — Project Parameters
+  'params:extract', 'params:get', 'params:save', 'params:delete', 'params:bulkSave',
+  'params:getContext',
+  // GPROMPT — Golden Prompts
+  'golden:save', 'golden:getAll', 'golden:delete', 'golden:analyze',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

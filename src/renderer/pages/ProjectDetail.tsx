@@ -20,8 +20,9 @@ import type { WebsiteDesignScore } from '../../shared/types';
 import { useToast } from '../components/Toast';
 import PromptPage from './PromptPage';
 import NextStepsWidget from '../components/NextStepsWidget';
+import GPromptTab from './GPromptTab';
 
-const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt', 'Import'];
+const BASE_TABS = ['Overview', 'Memory', 'Tasks', 'Notes', 'Launcher', 'Metrics', 'Decisions', 'Learnings', 'Activity', 'Prompt', 'GPROMPT', 'Import'];
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -171,6 +172,7 @@ export default function ProjectDetail() {
         {tab === 'Notes' && <QuickNotes projectId={projectId} />}
         {tab === 'Activity' && <ActivityTab projectId={projectId} />}
         {tab === 'Prompt' && <PromptPage project={project} onUpdate={update} />}
+        {tab === 'GPROMPT' && <GPromptTab project={project} />}
         {tab === 'Import' && <ImportTab projectId={projectId} onImported={refresh} />}
       </div>
 
