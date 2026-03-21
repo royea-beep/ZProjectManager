@@ -282,4 +282,10 @@ export const IPC_CHANNELS = {
   // Prompt Engine
   PROMPTS_GENERATE: 'prompts:generate',
   PROMPTS_GET_ACTIONS: 'prompts:getActions',
+  PROMPTS_GET_SITUATIONS: 'prompts:get-situations',
+  PROMPTS_GENERATE_SITUATIONAL: 'prompts:generate-situational',
+  // Session Logger
+  SESSIONS_SAVE_LOG: 'sessions:save-log',
+  SESSIONS_GET_ALL_LOGS: 'sessions:get-all-logs',
+  SESSIONS_ANALYZE_PATTERNS: 'sessions:analyze-patterns',
 } as const;

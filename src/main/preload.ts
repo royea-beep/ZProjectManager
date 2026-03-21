@@ -58,6 +58,10 @@ const ALLOWED_CHANNELS = new Set([
   'revenue:getAll', 'revenue:createEntry', 'revenue:deleteEntry', 'revenue:updateProject',
   // Prompt Engine
   'prompts:generate', 'prompts:getActions',
+  'prompts:get-situations', 'prompts:generate-situational',
+  'prompts:log-usage', 'prompts:update-outcome', 'prompts:get-usage',
+  // Session Logger
+  'sessions:save-log', 'sessions:get-all-logs', 'sessions:analyze-patterns',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

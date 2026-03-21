@@ -292,6 +292,65 @@ export const generatePrompt = (args: { projectId: number; action: PromptAction; 
 export const getPromptActions = () =>
   invoke(IPC_CHANNELS.PROMPTS_GET_ACTIONS) as Promise<PromptActionsResponse>;
 
+// Situational Prompts
+export interface SituationMeta {
+  id: string;
+  title: string;
+  emoji: string;
+  description: string;
+  category: string;
+  contextFields: Array<{ key: string; label: string; placeholder: string; required?: boolean }>;
+}
+export const getSituations = () =>
+  invoke(IPC_CHANNELS.PROMPTS_GET_SITUATIONS) as Promise<SituationMeta[]>;
+export const generateSituationalPrompt = (args: { situation: string; context: Record<string, string> }) =>
+  invoke(IPC_CHANNELS.PROMPTS_GENERATE_SITUATIONAL, args) as Promise<string>;
+
+// Session Logger
+export interface SessionEntry {
+  timestamp: string;
+  type: 'strategic' | 'execution' | 'combined';
+  projectName: string;
+  projectPath: string;
+  summary: string;
+  decisions: string[];
+  filesChanged: string[];
+  whatWorked: string;
+  whatDidntWork: string;
+  nextStep: string;
+  promptUsed?: string;
+}
+export interface SessionPatterns {
+  totalSessions: number;
+  mostCommonBlockers: string[];
+  mostProductiveHour: string;
+  promptsWithBestOutcomes: string[];
+  recommendations: string[];
+}
+export const saveSessionLog = (entry: SessionEntry) =>
+  invoke(IPC_CHANNELS.SESSIONS_SAVE_LOG, entry) as Promise<string>;
+export const getAllSessionLogs = (projectPath: string) =>
+  invoke(IPC_CHANNELS.SESSIONS_GET_ALL_LOGS, projectPath) as Promise<SessionEntry[]>;
+export const analyzeSessionPatterns = (projectPath: string) =>
+  invoke(IPC_CHANNELS.SESSIONS_ANALYZE_PATTERNS, projectPath) as Promise<SessionPatterns>;
+
+// Prompt usage tracking
+export interface PromptUsageEntry {
+  id: string;
+  prompt_type: string;
+  prompt_id: string;
+  project_id: number | null;
+  outcome: 'success' | 'partial' | 'failure' | 'unknown';
+  notes: string | null;
+  used_at: string;
+}
+export const logPromptUsage = (args: { promptType: string; promptId: string; projectId?: number }) =>
+  invoke('prompts:log-usage', args) as Promise<{ ok: boolean }>;
+export const updatePromptOutcome = (args: { id: string; outcome: string; notes?: string }) =>
+  invoke('prompts:update-outcome', args) as Promise<{ ok: boolean }>;
+export const getPromptUsage = (projectId?: number) =>
+  invoke('prompts:get-usage', projectId) as Promise<PromptUsageEntry[]>;
+
 // Revenue
 import type { RevenueEntry } from '../../shared/types';
 export const getRevenueEntries = () => invoke(IPC_CHANNELS.REVENUE_GET_ALL) as Promise<RevenueEntry[]>;

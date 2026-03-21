@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 8;
+const CURRENT_SCHEMA_VERSION = 9;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -260,6 +260,23 @@ function runMigrations(fromVersion: number): void {
       ['TestFlight build 5 — add testers & smoke-test']
     );
   }
+  // Migration 8 -> 9: prompt_usage table for learning which prompts work best
+  if (fromVersion < 9) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS prompt_usage (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        prompt_type TEXT NOT NULL,
+        prompt_id TEXT NOT NULL,
+        project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+        outcome TEXT CHECK(outcome IN ('success','partial','failure','unknown')) DEFAULT 'unknown',
+        notes TEXT,
+        used_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_prompt_usage_project ON prompt_usage(project_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_prompt_usage_prompt ON prompt_usage(prompt_id)`);
+  }
+
   // Migration 7 -> 8: category column + prompt category seeds
   if (fromVersion < 8) {
     try { db.run("ALTER TABLE projects ADD COLUMN category TEXT DEFAULT 'web-saas'"); } catch { /* exists */ }

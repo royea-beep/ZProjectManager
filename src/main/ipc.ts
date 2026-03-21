@@ -13,6 +13,10 @@ import { generateWeeklyDigest } from './digest';
 import { generateMegaPrompt } from './prompt-engine';
 import { ACTION_GROUPS, ACTION_LABELS } from '../shared/prompt-templates';
 import type { PromptAction } from '../shared/prompt-templates';
+import { SITUATIONAL_PROMPTS, getSituationalPrompt } from './situational-prompts';
+import type { Situation } from './situational-prompts';
+import { saveSessionLog, readAllSessionLogs, analyzeSessionPatterns } from './session-logger';
+import type { SessionEntry } from './session-logger';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {
@@ -1225,5 +1229,57 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.PROMPTS_GET_ACTIONS, () => {
     return { groups: ACTION_GROUPS, labels: ACTION_LABELS };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROMPTS_GET_SITUATIONS, () => {
+    return SITUATIONAL_PROMPTS.map(p => ({
+      id: p.id,
+      title: p.title,
+      emoji: p.emoji,
+      description: p.description,
+      category: p.category,
+      contextFields: p.contextFields,
+    }));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROMPTS_GENERATE_SITUATIONAL, (_e, args: { situation: Situation; context: Record<string, string> }) => {
+    return getSituationalPrompt(args.situation, args.context);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SESSIONS_SAVE_LOG, (_e, entry: SessionEntry) => {
+    return saveSessionLog(entry);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SESSIONS_GET_ALL_LOGS, (_e, projectPath: string) => {
+    return readAllSessionLogs(projectPath);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SESSIONS_ANALYZE_PATTERNS, (_e, projectPath: string) => {
+    const logs = readAllSessionLogs(projectPath);
+    return analyzeSessionPatterns(logs);
+  });
+
+  // Prompt usage logging
+  ipcMain.handle('prompts:log-usage', (_e, args: { promptType: string; promptId: string; projectId?: number }) => {
+    runInsert(
+      'INSERT INTO prompt_usage (prompt_type, prompt_id, project_id) VALUES (?, ?, ?)',
+      [args.promptType, args.promptId, args.projectId ?? null]
+    );
+    return { ok: true };
+  });
+
+  ipcMain.handle('prompts:update-outcome', (_e, args: { id: string; outcome: string; notes?: string }) => {
+    runQuery(
+      "UPDATE prompt_usage SET outcome = ?, notes = ? WHERE id = ?",
+      [args.outcome, args.notes ?? null, args.id]
+    );
+    return { ok: true };
+  });
+
+  ipcMain.handle('prompts:get-usage', (_e, projectId?: number) => {
+    if (projectId) {
+      return getAll('SELECT * FROM prompt_usage WHERE project_id = ? ORDER BY used_at DESC LIMIT 100', [projectId]);
+    }
+    return getAll('SELECT * FROM prompt_usage ORDER BY used_at DESC LIMIT 200');
   });
 }
