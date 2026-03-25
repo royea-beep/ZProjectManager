@@ -129,7 +129,28 @@
       "Bash(head -100 C:/Projects/90soccer/src/components/game/HomeScreen.tsx echo ---SOUND--- find C:/Projects/90soccer/src -name *sound* -o -name *audio* -o -name *Sound*)",
       "Bash(head -5 echo ---STREAK--- find C:/Projects/90soccer/src -name *Streak*)",
       "Bash(diff:*)",
-      "Bash(xargs -I{} basename {})"
+      "Bash(xargs -I{} basename {})",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/tsc.cmd --noEmit)",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "Bash(gh run:*)",
+      "Bash(gh secret:*)",
+      "Bash(gh workflow:*)",
+      "Bash(head:*)",
+      "Bash(gh api:*)",
+      "Bash(find /c/Projects/90soccer/src -type f \\\\\\(-name *dna* -o -name *DNA* -o -name *character* -o -name *Character* \\\\\\))",
+      "Bash(find /c/Projects/90soccer/src -type f \\\\\\(-name *skill* -o -name *Skill* -o -name *power* -o -name *Power* \\\\\\))",
+      "Bash(find /c/Projects/90soccer/src -type f \\\\\\(-name *economy* -o -name *coin* -o -name *Coin* \\\\\\))",
+      "Bash(grep -v \"//.*#\")",
+      "Bash(xargs -I{} head -5 {})",
+      "Bash(security find-identity:*)",
+      "Bash(grep '\"\"version\"\"' /c/Projects/90soccer/node_modules/@capacitor/ios/package.json)",
+      "Bash(grep '\"\"version\"\"' /c/Projects/90soccer/node_modules/@capacitor/screen-orientation/package.json)",
+      "Bash(Remove-Item -Force .next/lock)",
+      "Bash(sort -t: -k2 -rn)",
+      "Bash(Remove-Item -Force C:Projects90soccer.nextlock)",
+      "Bash(for f:*)",
+      "Read(//c/Projects/Caps/**)"
     ]
   }
 }
