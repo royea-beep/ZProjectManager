@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "module": "CommonJS",
+    "paths": {
+      "@shared/*": [
+        "src/shared/*"
+      ],
+      "electron": [
+        "src/mocks/electron"
+      ]
+    }
+  },
+  "include": [
+    "src/main/**/*",
+    "src/shared/**/*",
+    "src/mocks/**/*"
+  ]
+}

@@ -506,9 +506,36 @@ function runMigrations(fromVersion: number): void {
         last_used_at TEXT
       )
     `);
+    // Add missing columns BEFORE creating indexes (table may have existed before v16)
+    const ppCols: [string, string][] = [
+      ['grade_score', 'REAL'],
+      ['source_project', 'TEXT'],
+      ['source_report_id', 'TEXT'],
+      ['times_reused', 'INTEGER DEFAULT 1'],
+      ['template_snippet', 'TEXT'],
+      ['gems_associated', 'TEXT'],
+      ['last_used_at', 'TEXT'],
+    ];
+    for (const [col, type] of ppCols) {
+      try { db.run(`ALTER TABLE prompt_patterns ADD COLUMN ${col} ${type}`); } catch { /* already exists */ }
+    }
     db.run('CREATE INDEX IF NOT EXISTS idx_patterns_category ON prompt_patterns(category)');
     db.run('CREATE INDEX IF NOT EXISTS idx_patterns_grade ON prompt_patterns(grade_score DESC)');
     db.run('CREATE INDEX IF NOT EXISTS idx_patterns_reused ON prompt_patterns(times_reused DESC)');
+
+    // Add missing columns to final_reports if table existed before v16
+    const frCols: [string, string][] = [
+      ['grade_score', 'REAL'],
+      ['grade_efficiency', 'REAL'],
+      ['grade_accuracy', 'REAL'],
+      ['grade_completeness', 'REAL'],
+      ['grade_reusability', 'REAL'],
+      ['grade_calculated_at', 'TEXT'],
+      ['rollbacks_needed', 'INTEGER DEFAULT 0'],
+    ];
+    for (const [col, type] of frCols) {
+      try { db.run(`ALTER TABLE final_reports ADD COLUMN ${col} ${type}`); } catch { /* already exists */ }
+    }
   }
 
   // Migration 9 -> 10: project_parameters + golden_prompts tables
