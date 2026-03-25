@@ -25,6 +25,21 @@ export interface ImportResult {
   patternsExtracted: number;
 }
 
+interface SyncLogEntry {
+  file: string;
+  path: string;
+  project_dir: string;
+  modified: string;
+  mtime: number;
+  size_kb: number;
+  total_turns: number;
+  project: string;
+  phase: string;
+  quality: number; // 1-5
+  user_prompts: string[];
+  sample_exchange?: unknown;
+}
+
 // ── Project scan roots ─────────────────────────────────────────────────────────
 
 const SESSION_ROOTS: { dir: string; project: string }[] = [
@@ -36,6 +51,12 @@ const SESSION_ROOTS: { dir: string; project: string }[] = [
   { dir: 'C:/Projects/analyzer-standalone/sessions', project: 'analyzer' },
   { dir: 'C:/Projects/PostPilot/sessions', project: 'postpilot' },
   { dir: 'C:/Projects/clubgg/sessions', project: 'clubgg' },
+  { dir: 'C:/Projects/ExplainIt/sessions', project: 'explainit' },
+  { dir: 'C:/Projects/VenueKit/sessions', project: 'venuekit' },
+  { dir: 'C:/Projects/KeyDrop/sessions', project: 'keydrop' },
+  { dir: 'C:/Projects/ftable/sessions', project: 'ftable' },
+  { dir: 'C:/Projects/letsmakebillions/sessions', project: 'letsmakebillions' },
+  { dir: 'C:/Projects/_SHARED/sessions', project: 'general' },
 ];
 
 const GIT_ROOTS: { dir: string; project: string }[] = [
@@ -46,6 +67,55 @@ const GIT_ROOTS: { dir: string; project: string }[] = [
   { dir: 'C:/Projects/PostPilot', project: 'postpilot' },
   { dir: 'C:/Projects/analyzer-standalone', project: 'analyzer' },
 ];
+
+// ── Sync log path ─────────────────────────────────────────────────
+const SYNC_LOG_PATH = 'C:/Users/royea/AppData/Local/11STEPS2DONE/sessions_log.jsonl';
+
+// ── Claude Code session roots ──────────────────────────────────────────────
+const CLAUDE_PROJECTS_DIR = 'C:/Users/royea/.claude/projects';
+
+// ── Project name normalizer ──────────────────────────────────────────────
+const PROJECT_NAME_MAP: Record<string, string> = {
+  '90soccer': '9soccer',
+  '9soccer': '9soccer',
+  'caps': 'caps',
+  'wingman': 'wingman',
+  'ftable': 'ftable',
+  'clubgg': 'clubgg',
+  'explainit': 'explainit',
+  'analyzer': 'analyzer',
+  'analyzer-standalone': 'analyzer',
+  'zprojectmanager': 'zprojectmanager',
+  'letsmakebillions': 'letsmakebillions',
+  'cryptowhale': 'cryptowhale',
+  'heroes': 'heroes',
+  'postpilot': 'postpilot',
+  'venuekit': 'venuekit',
+  'keydrop': 'keydrop',
+  'general': 'general',
+  'secretsauce': 'secretsauce',
+};
+
+function normalizeProject(raw: string): string {
+  const lower = raw.toLowerCase().replace(/[_s]/g, '-');
+  if (PROJECT_NAME_MAP[lower]) return PROJECT_NAME_MAP[lower];
+  // Try partial match
+  for (const [key, val] of Object.entries(PROJECT_NAME_MAP)) {
+    if (lower.includes(key) || key.includes(lower)) return val;
+  }
+  return lower;
+}
+
+function qualityToSignals(q: number): { completed: number; total: number; questions: number; errors: number } {
+  switch (q) {
+    case 5: return { completed: 5, total: 5, questions: 0, errors: 0 };
+    case 4: return { completed: 4, total: 5, questions: 0, errors: 0 };
+    case 3: return { completed: 3, total: 5, questions: 1, errors: 1 };
+    case 2: return { completed: 2, total: 5, questions: 2, errors: 2 };
+    case 1: return { completed: 1, total: 5, questions: 3, errors: 3 };
+    default: return { completed: 3, total: 5, questions: 1, errors: 1 };
+  }
+}
 
 // ── Filename parser ──────────────────────────────────────────────────────────────────
 
@@ -341,6 +411,40 @@ export function discoverSessions(): RawSession[] {
     }
   }
 
+
+  // Also scan Claude Code project sessions (C:/Users/royea/.claude/projects/)
+  if (fs.existsSync(CLAUDE_PROJECTS_DIR)) {
+    try {
+      const claudeDirs = fs.readdirSync(CLAUDE_PROJECTS_DIR);
+      for (const dir of claudeDirs) {
+        const dirPath = path.join(CLAUDE_PROJECTS_DIR, dir);
+        if (!fs.statSync(dirPath).isDirectory()) continue;
+        // Infer project name from directory name (e.g. C--Projects-90soccer → 9soccer)
+        const rawProject = dir.replace(/^C--Projects-/i, '').replace(/-+/g, '-').toLowerCase();
+        const project = normalizeProject(rawProject);
+        try {
+          const files = fs.readdirSync(dirPath);
+          for (const file of files) {
+            if (!file.endsWith('.jsonl')) continue;
+            const filepath = path.join(dirPath, file);
+            try {
+              const stat = fs.statSync(filepath);
+              if (stat.size < 100) continue;
+              // Don't read full content — create a synthetic session marker
+              sessions.push({
+                filepath,
+                project,
+                content: '## Claude Code Session\nproject: ' + project + '\nfile: ' + file + '\nsize: ' + stat.size,
+                date: stat.mtime.toISOString(),
+                type: 'session-log',
+              });
+            } catch { continue; }
+          }
+        } catch { continue; }
+      }
+    } catch { /* ignore */ }
+  }
+
   return sessions;
 }
 
@@ -481,6 +585,93 @@ export function extractInitialPatterns(): { extracted: number } {
   return { extracted };
 }
 
+// ── Import from daily sync log ───────────────────────────────────────────────────────────────────────────────────────────────────────
+export function importFromSyncLog(): { imported: number; skipped: number; errors: number } {
+  const result = { imported: 0, skipped: 0, errors: 0 };
+  if (!fs.existsSync(SYNC_LOG_PATH)) return result;
+
+  let lines: string[];
+  try {
+    lines = fs.readFileSync(SYNC_LOG_PATH, 'utf-8').trim().split('\n').filter(Boolean);
+  } catch { return result; }
+
+  // Group entries by project + date + phase → one FinalReport per group
+  const groups = new Map<string, SyncLogEntry[]>();
+  for (const line of lines) {
+    try {
+      const entry: SyncLogEntry = JSON.parse(line);
+      const date = (entry.modified || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+      const proj = normalizeProject(entry.project || '');
+      const phase = (entry.phase || 'dev').toLowerCase();
+      const key = proj + '|' + date + '|' + phase;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(entry);
+    } catch { result.errors++; }
+  }
+
+  for (const [key, entries] of groups) {
+    try {
+      const [proj, date, phase] = key.split('|');
+      // Aggregate quality: use median of the group
+      const qualities = entries.map(e => e.quality || 3).sort((a, b) => a - b);
+      const medianQ = qualities[Math.floor(qualities.length / 2)];
+      const signals = qualityToSignals(medianQ);
+      const totalTurns = entries.reduce((s, e) => s + (e.total_turns || 0), 0);
+
+      // Build tasks from entries
+      const tasks: TaskResult[] = entries.slice(0, 10).map((e, i) => ({
+        number: i + 1,
+        description: (e.user_prompts?.[0] || e.file || 'session').slice(0, 80),
+        status: (e.quality || 3) >= 4 ? 'completed' : (e.quality || 3) >= 2 ? 'partial' : 'failed',
+      }));
+
+      const action = (phase + '-session').slice(0, 60);
+      const category = inferCategory(phase, proj);
+      const promptFile = 'synclog_' + proj + '_' + date + '_' + phase + '.auto';
+
+      // Duplicate check by prompt_file
+      const existing = getOne('SELECT id FROM final_reports WHERE prompt_file = ?', [promptFile]);
+      if (existing) { result.skipped++; continue; }
+
+      const report: FinalReport = {
+        id: proj + '_synclog_' + date.replace(/-/g, '') + '_' + phase + '_' + Math.random().toString(36).slice(2, 5),
+        project: proj,
+        timestamp: date + 'T12:00:00.000Z',
+        duration_minutes: Math.min(totalTurns * 2, 240),
+        sprint: '',
+        terminal: proj.toUpperCase(),
+        prompt_file: promptFile,
+        prompt_category: category,
+        prompt_action: action,
+        prompt_hebrew_input: '',
+        tasks: tasks.length > 0 ? tasks : [{ number: 1, description: phase + ' session', status: 'completed' }],
+        total_tasks: signals.total,
+        completed_tasks: signals.completed,
+        failed_tasks: signals.total - signals.completed,
+        bot_questions_asked: signals.questions,
+        errors_encountered: signals.errors,
+        rollbacks_needed: 0,
+        files_changed: entries.length,
+        lines_added: 0,
+        lines_removed: 0,
+        gems_discovered: [],
+        blockers_hit: [],
+        decisions_made: [],
+        commit_hash: '',
+        commit_message: phase + ' session (' + entries.length + ' files)',
+        branch: 'master',
+      };
+
+      const grade = gradePrompt(report);
+      const withGrade = { ...report, grade };
+      saveFinalReport(withGrade);
+      result.imported++;
+    } catch { result.errors++; }
+  }
+
+  return result;
+}
+
 // ── Main import function ─────────────────────────────────────────────────────────────────────────────
 
 export function importAllSessions(): ImportResult {
@@ -526,6 +717,12 @@ export function importAllSessions(): ImportResult {
       }
     }
   }
+
+  // Import from daily sync log (primary bulk source)
+  const syncResult = importFromSyncLog();
+  result.imported += syncResult.imported;
+  result.skipped += syncResult.skipped;
+  result.total += syncResult.imported + syncResult.skipped;
 
   rebuildIndex();
 
