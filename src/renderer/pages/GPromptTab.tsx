@@ -218,6 +218,7 @@ export default function GPromptTab({ project }: Props) {
   const [tab, setTab] = React.useState<TabMode>('params');
   const [filterCat, setFilterCat] = React.useState<string>('all');
   const [showMissingOnly, setShowMissingOnly] = React.useState(false);
+  const [patternCount, setPatternCount] = React.useState(0);
 
   const load = async () => {
     setLoading(true);
@@ -234,6 +235,10 @@ export default function GPromptTab({ project }: Props) {
   };
 
   React.useEffect(() => { load(); }, [project.id]);
+  React.useEffect(() => {
+    window.api.invoke('intel:pattern-count', project.name, (project as any).category || 'general')
+      .then(c => setPatternCount(Number(c || 0))).catch(() => {});
+  }, [project.name]);
 
   const handleExtract = async () => {
     if (!project.repo_path) return;
@@ -274,7 +279,9 @@ export default function GPromptTab({ project }: Props) {
     setGolden(prev => prev.filter(g => g.id !== id));
   };
 
-  const handleGenerateNextSprint = async () => {
+  // patternCount badge displayed in generate section
+
+    const handleGenerateNextSprint = async () => {
     try {
       const tasks = await window.api.invoke('tasks:getAll', project.id) as any[];
       const openTasks = tasks.filter((t: any) => t.status === 'todo' || t.status === 'in_progress');
@@ -288,7 +295,9 @@ export default function GPromptTab({ project }: Props) {
   };
 
   // Grouped by category
-  const categories = [...new Set(params.map(p => p.category))].sort();
+  // pattern badge shown in UI
+
+    const categories = [...new Set(params.map(p => p.category))].sort();
   const missingCritical = params.filter(p => {
     const isMissing = !p.value || p.value === '' || p.value === 'false';
     return isMissing && (PARAM_IMPORTANCE[p.key] === 'critical' || PARAM_IMPORTANCE[p.key] === 'important');
@@ -313,7 +322,14 @@ export default function GPromptTab({ project }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold">GPROMPT Parameters</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-base font-semibold">GPROMPT Parameters</h2>
+            {patternCount > 0 && (
+              <span className="text-xs px-2 py-0.5 bg-accent-blue/10 border border-accent-blue/30 text-accent-blue rounded-full">
+                {patternCount} proven patterns available
+              </span>
+            )}
+          </div>
           <p className="text-xs text-dark-muted mt-0.5">Auto-extract project context → inject into every prompt → zero guessing</p>
         </div>
         <div className="flex gap-2 items-center">

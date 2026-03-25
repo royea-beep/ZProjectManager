@@ -17,6 +17,7 @@ import BillingPage from './pages/BillingPage';
 import PipelinePage from './pages/PipelinePage';
 import BriefingPage from './pages/BriefingPage';
 import LearningEnginePage from './pages/LearningEnginePage';
+import LearningBrainPage from './pages/LearningBrainPage';
 import IdeaCollector from './components/IdeaCollector';
 import GlobalSearch from './components/GlobalSearch';
 import NotificationBell from './components/NotificationBell';
@@ -62,6 +63,7 @@ const navItems = [
   { path: '/activity', label: 'Activity', icon: '◎' },
   { path: '/settings', label: 'Settings', icon: '⚙' },
   { path: '/learning-engine', label: 'Learning', icon: '📚' },
+  { path: '/learning-brain', label: 'Brain', icon: '🧠' },
   { path: '/synergy', label: 'Synergy', icon: '⬢' },
   { path: '/prompt-analytics', label: 'Prompt Stats', icon: '📊' },
 ];
@@ -227,6 +229,7 @@ export default function App() {
       '/briefing': 'ZProjectManager — Briefing',
       '/intelligence': 'ZProjectManager — Intelligence',
       '/billing': 'ZProjectManager — Billing',
+      '/learning-brain': 'ZProjectManager — Learning Brain',
       '/pipeline': 'ZProjectManager — Pipeline',
     };
     if (!isProjectPage) {
@@ -316,6 +319,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="/learning-engine" element={<LearningEnginePage />} />
+          <Route path="/learning-brain" element={<LearningBrainPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/pipeline" element={<PipelinePage />} />
           <Route path="/briefing" element={<BriefingPage />} />

@@ -457,3 +457,24 @@ export const createRevenueEntry = (data: { project_id: number; amount: number; t
 export const deleteRevenueEntry = (id: number) => invoke(IPC_CHANNELS.REVENUE_DELETE_ENTRY, id) as Promise<boolean>;
 export const updateProjectRevenue = (id: number, data: { mrr?: number; arr?: number; revenue_model?: string; paying_customers?: number; revenue_notes?: string }) =>
   invoke(IPC_CHANNELS.REVENUE_UPDATE_PROJECT, id, data) as Promise<boolean>;
+
+// Learning Brain — Shared Memory
+export const saveFinalReport = (report: unknown) => invoke('memory:save-report', report);
+export const getLatestReport = (project: string) => invoke('memory:get-latest', project);
+export const getProjectReports = (project: string) => invoke('memory:get-project', project);
+export const searchMemoryReports = (query: string) => invoke('memory:search', query);
+export const getAllMemoryReports = (limit?: number) => invoke('memory:get-all', limit);
+export const getMemoryStats = () => invoke('memory:get-stats');
+export const importRawReport = (text: string) => invoke('memory:import-raw', text);
+
+// Learning Brain — Grading
+export const gradingCategoryAverages = () => invoke('grading:category-averages');
+export const gradingWeakPrompts = (threshold?: number) => invoke('grading:weak-prompts', threshold);
+export const gradingSummary = () => invoke('grading:summary');
+export const gradingTopPrompts = (category: string, limit?: number) => invoke('grading:top-prompts', category, limit);
+
+// Learning Brain — Cross-Project Intel
+export const getAllPatterns = () => invoke('intel:get-all-patterns');
+export const getCrossProjectInsights = () => invoke('intel:get-insights');
+export const markPatternProven = (patternId: string, project: string) => invoke('intel:mark-proven', patternId, project);
+export const getPatternCount = (project: string, category: string) => invoke('intel:pattern-count', project, category);

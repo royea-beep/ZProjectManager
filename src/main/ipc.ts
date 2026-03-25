@@ -26,6 +26,10 @@ import { extractRequests, generateConfirmationMessage } from './request-extracto
 import { runExpertPanel, formatPanelForPrompt } from './expert-panel-engine';
 import type { ExpertPanelResult } from './expert-panel-engine';
 import { analyzeAllProjectsAsync, analyzeProjectAsync, generateSharedUtilsRecs } from './learning-engine';
+import { saveFinalReport, getLatestReport, getProjectReports, searchReports, getReportsByCategory, getAllReports, rebuildIndex, parseAndSaveRawReport, getReportStats } from './shared-memory';
+import { gradePrompt, getTopPrompts, getCategoryAverages, getWeakPrompts, getGradesSummary } from './prompt-grading';
+import { extractPatterns, suggestPatterns, injectPatterns, getCrossProjectInsights, markPatternAsProven, getAllPatterns, getPatternCountForProject } from './cross-project-intel';
+import type { FinalReport } from './shared-memory';
 
 const DEFAULT_PROJECTS_DIR = 'C:\\Projects';
 function getProjectsDir(): string {

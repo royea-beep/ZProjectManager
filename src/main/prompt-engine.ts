@@ -1,4 +1,5 @@
 import type { PromptAction } from '../shared/prompt-templates';
+import { injectPatterns } from './cross-project-intel';
 
 export interface ProjectPromptData {
   id: number;

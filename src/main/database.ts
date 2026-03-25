@@ -9,7 +9,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePending = false;
 let lastSaveTime: string | null = null;
 
-const CURRENT_SCHEMA_VERSION = 15;
+const CURRENT_SCHEMA_VERSION = 16;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -442,6 +442,73 @@ function runMigrations(fromVersion: number): void {
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('anthropic_api_key', '')`);
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('expert_panel_enabled', 'true')`);
     db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('expert_panel_count', '5')`);
+  }
+
+
+  // Migration 15 -> 16: final_reports + prompt_patterns (Learning Brain)
+  if (fromVersion < 16) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS final_reports (
+        id TEXT PRIMARY KEY,
+        project TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        duration_minutes INTEGER,
+        sprint TEXT,
+        terminal TEXT,
+        prompt_file TEXT,
+        prompt_category TEXT,
+        prompt_action TEXT,
+        prompt_hebrew_input TEXT,
+        total_tasks INTEGER,
+        completed_tasks INTEGER,
+        failed_tasks INTEGER,
+        bot_questions_asked INTEGER DEFAULT 0,
+        errors_encountered INTEGER DEFAULT 0,
+        rollbacks_needed INTEGER DEFAULT 0,
+        files_changed INTEGER DEFAULT 0,
+        lines_added INTEGER DEFAULT 0,
+        lines_removed INTEGER DEFAULT 0,
+        gems_discovered TEXT,
+        blockers_hit TEXT,
+        decisions_made TEXT,
+        commit_hash TEXT,
+        commit_message TEXT,
+        branch TEXT,
+        grade_score REAL,
+        grade_efficiency REAL,
+        grade_accuracy REAL,
+        grade_completeness REAL,
+        grade_reusability REAL,
+        grade_calculated_at TEXT,
+        raw_json TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    db.run('CREATE INDEX IF NOT EXISTS idx_reports_project ON final_reports(project)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_reports_category ON final_reports(prompt_category)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_reports_timestamp ON final_reports(timestamp DESC)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_reports_grade ON final_reports(grade_score DESC)');
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS prompt_patterns (
+        id TEXT PRIMARY KEY,
+        action TEXT NOT NULL,
+        category TEXT NOT NULL,
+        description TEXT,
+        source_project TEXT NOT NULL,
+        source_report_id TEXT,
+        grade_score REAL,
+        times_reused INTEGER DEFAULT 1,
+        projects_used_in TEXT,
+        template_snippet TEXT,
+        gems_associated TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        last_used_at TEXT
+      )
+    `);
+    db.run('CREATE INDEX IF NOT EXISTS idx_patterns_category ON prompt_patterns(category)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_patterns_grade ON prompt_patterns(grade_score DESC)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_patterns_reused ON prompt_patterns(times_reused DESC)');
   }
 
   // Migration 9 -> 10: project_parameters + golden_prompts tables

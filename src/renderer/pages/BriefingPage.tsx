@@ -18,6 +18,8 @@ export default function BriefingPage() {
   const [pipelineInfo, setPipelineInfo] = useState<any>(null);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [brainStats, setBrainStats] = useState<{ totalReports: number; projectCount: number; avgGrade: number } | null>(null);
+  const [gradeSummary, setGradeSummary] = useState<{ totalGraded: number; avgScore: number; topCategory: string; weakCount: number } | null>(null);
   const [generatingPrompt, setGeneratingPrompt] = useState<string | null>(null);
   const now = new Date();
   const hour = now.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
@@ -31,15 +33,19 @@ export default function BriefingPage() {
 
     await window.api.invoke('intelligence:run').catch(() => {});
 
-    const [workspaces, projects, sug, pipeline] = await Promise.all([
+    const [workspaces, projects, sug, pipeline, bStats, gSummary] = await Promise.all([
       window.api.invoke('workspaces:get-all'),
       window.api.invoke('projects:getAll'),
       window.api.invoke('intelligence:get-suggestions'),
       window.api.invoke('pipeline:get-quality-insights').catch(() => null),
+      window.api.invoke('memory:get-stats').catch(() => null),
+      window.api.invoke('grading:summary').catch(() => null),
     ]);
 
     setSuggestions((sug as any[]) || []);
     setPipelineInfo(pipeline);
+    setBrainStats(bStats as any);
+    setGradeSummary(gSummary as any);
 
     const builtSections: BriefingSection[] = [];
     for (const ws of ((workspaces as any[]) || [])) {
@@ -193,7 +199,23 @@ export default function BriefingPage() {
               </div>
             ))}
 
-            {/* Top intelligence suggestions */}
+            {/* Learning Brain Summary */}
+        {brainStats && brainStats.totalReports > 0 && (
+          <div className="mb-4 bg-dark-surface border border-dark-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm flex items-center gap-2">🧠 Learning Brain</h3>
+              <button onClick={() => navigate('/learning-brain')} className="text-xs text-accent-blue hover:underline">הצג הכל</button>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              <div className="text-center"><div className="text-lg font-bold text-accent-blue">{brainStats.totalReports}</div><div className="text-xs text-dark-muted">דוחות</div></div>
+              <div className="text-center"><div className="text-lg font-bold text-accent-green">{brainStats.projectCount}</div><div className="text-xs text-dark-muted">פרויקטים</div></div>
+              <div className="text-center"><div className={'text-lg font-bold ' + (brainStats.avgGrade >= 8 ? 'text-accent-green' : brainStats.avgGrade >= 6 ? 'text-yellow-400' : 'text-red-400')}>{brainStats.avgGrade}/10</div><div className="text-xs text-dark-muted">ממוצע</div></div>
+              {gradeSummary && <div className="text-center"><div className="text-lg font-bold text-red-400">{gradeSummary.weakCount}</div><div className="text-xs text-dark-muted">פרומפטים חלשים</div></div>}
+            </div>
+          </div>
+        )}
+
+                {/* Top intelligence suggestions */}
             {((suggestions as any[]).filter(s => s.priority >= 8)).length > 0 && (
               <div>
                 <p className="text-[10px] text-dark-muted uppercase tracking-wider mb-2">🧠 Intelligence</p>
