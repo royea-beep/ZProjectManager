@@ -1,459 +1,1928 @@
 <!DOCTYPE html>
+
+
+
 <html lang="he" dir="rtl">
+
+
+
 <head>
+
+
+
 <meta charset="UTF-8">
+
+
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
+
+
 <title>PrePrompt Engine V2</title>
+
+
+
 <style>
+
+
+
 :root{--bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#1e1e1e;--bd:#222;--bd2:#2a2a2a;--bd3:#333;--green:#22c55e;--green2:#16a34a;--green3:#0d2e18;--txt:#e5e5e5;--txt2:#aaa;--txt3:#666;--txt4:#444;--r:8px;--r2:6px}
+
+
+
 *{box-sizing:border-box;margin:0;padding:0}
+
+
+
 body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;height:100vh;overflow:hidden;display:grid;grid-template-rows:48px 1fr;grid-template-columns:260px 1fr 280px}
+
+
+
 header{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;padding:0 16px;z-index:10}
+
+
+
 header h1{font-size:16px;font-weight:700;color:var(--green)}
+
+
+
 .hbadge{background:var(--green3);color:var(--green);font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;border:1px solid var(--green2)}
+
+
+
 .hinfo{margin-right:auto;font-size:11px;color:var(--txt3)}
+
+
+
 .sidebar-l{background:var(--bg2);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;direction:rtl}
+
+
+
 .sidebar-r{background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;direction:rtl}
+
+
+
 .sb-sec{padding:12px 12px 5px;font-size:10px;font-weight:700;color:var(--txt4);text-transform:uppercase;letter-spacing:.8px}
+
+
+
 .proj-sel{margin:0 10px 8px;background:var(--bg3);border:1px solid var(--bd);color:var(--txt);font-size:13px;padding:7px 10px;border-radius:var(--r);direction:rtl;width:calc(100% - 20px);cursor:pointer}
+
+
+
 .proj-sel:focus{outline:none;border-color:var(--green)}
+
+
+
 .proj-info{margin:0 10px 10px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;font-size:11px;color:var(--txt2);line-height:1.8}
+
+
+
 .proj-info b{color:var(--green);font-size:10px;text-transform:uppercase}
+
+
+
 .cat-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-radius:var(--r);margin:1px 8px;transition:background .1s,color .1s;color:var(--txt2);font-size:13px;user-select:none}
+
+
+
 .cat-btn:hover{background:var(--bg3);color:var(--txt)}
+
+
+
 .cat-btn.active{background:var(--bg3);color:var(--green);border-right:2px solid var(--green)}
+
+
+
 .cat-icon{font-size:15px;flex-shrink:0}
+
+
+
 .cat-badge{margin-right:auto;background:var(--bg4);font-size:10px;padding:1px 6px;border-radius:10px;color:var(--txt3)}
+
+
+
 .cat-btn.active .cat-badge{background:var(--green2);color:#fff}
+
+
+
 .hist-wrap{flex:1;overflow-y:auto;padding:4px 8px}
+
+
+
 .hist-item{padding:6px 9px;border-radius:var(--r2);cursor:pointer;font-size:11px;color:var(--txt3);margin-bottom:2px;transition:background .1s}
+
+
+
 .hist-item:hover{background:var(--bg3)}
+
+
+
 .hi-title{color:var(--txt2);font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+
 .no-hist{padding:20px 12px;font-size:12px;color:var(--txt4);text-align:center}
+
+
+
 main{display:flex;flex-direction:column;overflow:hidden;border-left:1px solid var(--bd);border-right:1px solid var(--bd)}
+
+
+
 .qa-bar{background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:6px;padding:6px 12px;overflow-x:auto;flex-shrink:0}
+
+
+
 .qa-bar span{font-size:11px;color:var(--txt3);white-space:nowrap}
+
+
+
 .qa-btn{white-space:nowrap;background:var(--bg3);border:1px solid var(--bd);color:var(--txt2);font-size:12px;padding:4px 11px;border-radius:20px;cursor:pointer;transition:all .1s}
+
+
+
 .qa-btn:hover{border-color:var(--green);color:var(--green)}
+
+
+
 .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;padding:12px;overflow-y:auto;max-height:196px;border-bottom:1px solid var(--bd);flex-shrink:0}
+
+
+
 .tpl-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:10px 11px;cursor:pointer;transition:border-color .1s;user-select:none}
+
+
+
 .tpl-card:hover{border-color:var(--bd3)}
+
+
+
 .tpl-card.active{border-color:var(--green);background:#091a0f}
+
+
+
 .tc-name{font-size:12px;font-weight:600;color:var(--txt)}
+
+
+
 .tc-desc{font-size:10px;color:var(--txt3);margin-top:3px;line-height:1.4}
+
+
+
 .he-wrap{padding:10px 12px;border-bottom:1px solid var(--bd);display:flex;gap:8px;flex-shrink:0}
+
+
+
 .he-wrap textarea{flex:1;background:var(--bg3);border:1px solid var(--bd);color:var(--txt);font-size:13px;border-radius:var(--r);padding:8px 10px;resize:none;height:54px;direction:rtl;font-family:inherit}
+
+
+
 .he-wrap textarea:focus{outline:none;border-color:var(--green)}
+
+
+
 .he-btn{background:var(--green2);color:#fff;border:none;border-radius:var(--r);padding:0 14px;cursor:pointer;font-size:13px;font-weight:600}
+
+
+
 .he-btn:hover{background:var(--green)}
+
+
+
 .out-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+
+
+
 .out-toolbar{padding:7px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--bd);flex-shrink:0}
+
+
+
 .out-label{font-size:11px;color:var(--txt3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+
 .lc{font-size:11px;color:var(--txt4)}
+
+
+
 .tbtn{background:var(--bg3);border:1px solid var(--bd);color:var(--txt2);font-size:12px;padding:5px 11px;border-radius:var(--r2);cursor:pointer;transition:all .1s;white-space:nowrap}
+
+
+
 .tbtn:hover{border-color:var(--green);color:var(--green)}
+
+
+
 .tbtn.primary{background:var(--green2);color:#fff;border-color:var(--green2)}
+
+
+
 .tbtn.primary:hover{background:var(--green)}
+
+
+
 #out{flex:1;overflow-y:auto;padding:14px;font-family:'Cascadia Code','Consolas',monospace;font-size:12px;line-height:1.7;color:var(--txt2);white-space:pre-wrap;direction:ltr;min-height:0}
+
+
+
 .out-ph{color:var(--txt3);text-align:center;padding:50px 20px;direction:rtl}
+
+
+
 .out-ph h3{font-size:18px;margin-bottom:8px;color:var(--txt2)}
+
+
+
 .param-row{padding:5px 12px;display:flex;flex-direction:column;gap:3px}
+
+
+
 .param-row label{font-size:11px;color:var(--txt3)}
+
+
+
 .param-row input,.param-row textarea{background:var(--bg3);border:1px solid var(--bd);color:var(--txt);font-size:12px;border-radius:var(--r2);padding:5px 8px;width:100%;font-family:inherit}
+
+
+
 .param-row input:focus,.param-row textarea:focus{outline:none;border-color:var(--green)}
+
+
+
 .gems-list{padding:4px 12px;flex:1;overflow-y:auto}
+
+
+
 .gem-row{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)}
+
+
+
 .gem-row input[type=checkbox]{margin-top:2px;accent-color:var(--green);width:13px;height:13px;flex-shrink:0;cursor:pointer}
+
+
+
 .gem-info .gl{font-size:12px;color:var(--txt2)}
+
+
+
 .gem-info .gd{font-size:10px;color:var(--txt3);margin-top:1px}
+
+
+
 .dna-list{padding:4px 12px 12px;overflow-y:auto;max-height:150px}
+
+
+
 .dna-row{font-size:11px;color:var(--txt3);padding:4px 0;border-bottom:1px solid var(--bd);line-height:1.5}
+
+
+
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--green2);color:#fff;padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+
+
+
 .toast.show{opacity:1}
+
+
+
 ::-webkit-scrollbar{width:5px;height:5px}
+
+
+
 ::-webkit-scrollbar-track{background:transparent}
+
+
+
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px}
+
+
+
+
+
+.settings-btn{background:none;border:none;color:var(--txt3);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:var(--r)}
+
+.settings-btn:hover{color:var(--green)}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center}
+
+.modal-overlay.open{display:flex}
+
+.modal{background:var(--bg2);border:1px solid var(--bd3);border-radius:var(--r);padding:22px;width:400px;max-width:calc(100vw - 32px);direction:rtl}
+
+.modal h2{font-size:15px;margin-bottom:16px;color:var(--txt)}
+
+.mrow{margin-bottom:13px}
+
+.mrow label{display:block;font-size:11px;color:var(--txt3);margin-bottom:5px}
+
+.mrow input{width:100%;background:var(--bg3);border:1px solid var(--bd);color:var(--txt);font-size:12px;border-radius:var(--r2);padding:7px 9px;font-family:monospace;direction:ltr}
+
+.mrow input:focus{outline:none;border-color:var(--green)}
+
+.mrow p{font-size:11px;color:var(--txt3);line-height:1.6;margin-top:4px}
+
+.mbtns{display:flex;gap:8px;margin-top:16px}
+
+.ai-toggle{background:var(--bg3);border:1px solid var(--bd);color:var(--txt2);font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;transition:all .15s;white-space:nowrap}
+
+.ai-toggle.on{background:#1a0a2e;border-color:#a855f7;color:#c084fc;font-weight:600}
+
+.loading-overlay{display:none;align-items:center;justify-content:center;gap:10px;flex:1;color:var(--txt3);font-size:13px}
+
+.loading-overlay.show{display:flex}
+
+.spinner{width:22px;height:22px;border:2px solid var(--bd3);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.state-tag{font-size:10px;color:var(--txt4);margin-right:auto;cursor:pointer;padding:0 8px}
+
+.state-tag:hover{color:var(--txt3)}
+
 </style>
+
+
+
 </head>
+
+
+
 <body>
+
+
+
 <header>
+
+
+
   <span style="font-size:20px">&#x26A1;</span>
+
+
+
   <h1>PrePrompt Engine</h1>
+
+
+
   <span class="hbadge">V2</span>
-  <span class="hinfo">Roye &middot; ftable.co.il</span>
+
+
+
+  <span class="hinfo">Roye &middot; ftable.co.il</span><span class="state-tag" id="stateTag" onclick="openSettings()">&#x1F4CA; State: --</span><button class="settings-btn" onclick="openSettings()">&#x2699;&#xFE0F;</button><button class="settings-btn" onclick="showToast('Run: node sync-project-states.js')" title="Sync project states">&#x1F504;</button>
+
+
+
 </header>
+
+
+
 <div class="sidebar-l">
+
+
+
   <div class="sb-sec">&#x05E4;&#x05E8;&#x05D5;&#x05D9;&#x05E7;&#x05D8;</div>
+
+
+
   <select class="proj-sel" id="projSel" onchange="selProj(this.value)">
+
+
+
     <option value="9soccer">&#x26BD; 9Soccer</option>
+
+
+
     <option value="caps">&#x1F0CF; Caps Poker</option>
+
+
+
     <option value="wingman">&#x1F4AB; Wingman</option>
+
+
+
     <option value="analyzer">&#x1F50D; Analyzer</option>
+
+
+
     <option value="postpilot">&#x2708; PostPilot</option>
+
+
+
     <option value="keydrop">&#x1F511; KeyDrop</option>
+
+
+
     <option value="explainit">&#x1F4F9; ExplainIt</option>
+
+
+
     <option value="venuekit">&#x1F3DF; VenueKit</option>
+
+
+
     <option value="ftable">&#x1F310; ftable</option>
+
+
+
     <option value="clubgg">&#x1F3AE; ClubGG</option>
+
+
+
     <option value="letsmakebillions">&#x1F4B0; LetsMakeBillions</option>
+
+
+
     <option value="zprojectmanager">&#x1F5A5; ZProjectManager</option>
+
+
+
   </select>
+
+
+
   <div class="proj-info" id="projInfo"></div>
+
+
+
   <div class="sb-sec">&#x05E7;&#x05D8;&#x05D2;&#x05D5;&#x05E8;&#x05D9;&#x05D4;</div>
+
+
+
   <div id="catList"></div>
+
+
+
   <div class="sb-sec" style="margin-top:6px">&#x05D4;&#x05D9;&#x05E1;&#x05D8;&#x05D5;&#x05E8;&#x05D9;&#x05D4;</div>
+
+
+
   <div class="hist-wrap" id="histList"></div>
+
+
+
 </div>
+
+
+
 <main>
+
+
+
   <div class="qa-bar">
+
+
+
     <span>&#x26A1;</span>
+
+
+
     <button class="qa-btn" onclick="qa('sec-full')">&#x1F510; &#x05D0;&#x05D1;&#x05D8;&#x05D7;&#x05D4;</button>
+
+
+
     <button class="qa-btn" onclick="qa('health-full')">&#x1F48A; &#x05D1;&#x05E8;&#x05D9;&#x05D0;&#x05D5;&#x05EA;</button>
+
+
+
     <button class="qa-btn" onclick="qa('rls-fix')">&#x1F6E1; RLS</button>
+
+
+
     <button class="qa-btn" onclick="qa('build-fix')">&#x1F528; Build</button>
+
+
+
     <button class="qa-btn" onclick="qa('env-sync')">&#x1F504; Env</button>
+
+
+
     <button class="qa-btn" onclick="qa('testflight')">&#x1F4F1; TestFlight</button>
+
+
+
     <button class="qa-btn" onclick="qa('save-all')">&#x1F4BE; &#x05E9;&#x05DE;&#x05D5;&#x05E8;</button>
+
+
+
     <button class="qa-btn" onclick="qa('cross-audit')">&#x1F50D; &#x05E1;&#x05E8;&#x05D9;&#x05E7;&#x05D4;</button>
+
+
+
   </div>
+
+
+
   <div class="tpl-grid" id="tplGrid">
+
+
+
     <div class="out-ph" style="padding:20px;grid-column:1/-1"><h3>&#x05D1;&#x05D7;&#x05E8; &#x05E7;&#x05D8;&#x05D2;&#x05D5;&#x05E8;&#x05D9;&#x05D4;</h3></div>
+
+
+
   </div>
+
+
+
   <div class="he-wrap">
+
+
+
     <textarea id="heInput" placeholder="&#x05D4;&#x05D5;&#x05E1;&#x05E3; &#x05D4;&#x05E2;&#x05E8;&#x05D4; &#x05D0;&#x05D5; &#x05E4;&#x05E8;&#x05D8;&#x05D9;&#x05DD;..."></textarea>
+
+
+
     <button class="he-btn" onclick="applyHebrew()">&#x25B6; &#x05D4;&#x05D5;&#x05E1;&#x05E3;</button>
+
+
+
   </div>
+
+
+
   <div class="out-wrap">
+
+
+
     <div class="out-toolbar">
+
+
+
       <span class="out-label" id="outLabel">&#x05D1;&#x05D7;&#x05E8; &#x05E4;&#x05E8;&#x05D5;&#x05D9;&#x05E7;&#x05D8; + &#x05E7;&#x05D8;&#x05D2;&#x05D5;&#x05E8;&#x05D9;&#x05D4; + &#x05EA;&#x05D1;&#x05E0;&#x05D9;&#x05EA;</span>
+
+
+
       <span class="lc" id="lineCount"></span>
-      <button class="tbtn" onclick="cpOut()">&#x1F4CB; &#x05D4;&#x05E2;&#x05EA;&#x05E7;</button>
+
+
+
+      <button class="ai-toggle" id="aiToggle" onclick="toggleAI()">&#x26A1; AI</button><button class="tbtn" onclick="cpOut()">&#x1F4CB; &#x05D4;&#x05E2;&#x05EA;&#x05E7;</button>
+
+
+
       <button class="tbtn primary" onclick="dlMd()">&#x2B07; .md</button>
+
+
+
     </div>
-    <pre id="out"><div class="out-ph"><h3>&#x26A1; PrePrompt Engine V2</h3><p>&#x05D1;&#x05D7;&#x05E8; &#x05E4;&#x05E8;&#x05D5;&#x05D9;&#x05E7;&#x05D8; &rarr; &#x05E7;&#x05D8;&#x05D2;&#x05D5;&#x05E8;&#x05D9;&#x05D4; &rarr; &#x05EA;&#x05D1;&#x05E0;&#x05D9;&#x05EA;</p></div></pre>
+
+
+
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div>Claude &#x05DE;&#x05D9;&#x05D9;&#x05E6;&#x05E8; prompt&#x2026;</div><pre id="out"><div class="out-ph"><h3>&#x26A1; PrePrompt Engine V2</h3><p>&#x05D1;&#x05D7;&#x05E8; &#x05E4;&#x05E8;&#x05D5;&#x05D9;&#x05E7;&#x05D8; &rarr; &#x05E7;&#x05D8;&#x05D2;&#x05D5;&#x05E8;&#x05D9;&#x05D4; &rarr; &#x05EA;&#x05D1;&#x05E0;&#x05D9;&#x05EA;</p></div></pre>
+
+
+
   </div>
+
+
+
 </main>
+
+
+
 <div class="sidebar-r">
+
+
+
   <div class="sb-sec">&#x05E4;&#x05E8;&#x05DE;&#x05D8;&#x05E8;&#x05D9;&#x05DD;</div>
+
+
+
   <div class="param-row">
+
+
+
     <label>&#x05DB;&#x05D5;&#x05EA;&#x05E8;&#x05EA; &#x05DE;&#x05E9;&#x05D9;&#x05DE;&#x05D4;</label>
+
+
+
     <input type="text" id="pTitle" placeholder="Task title..." dir="ltr">
+
+
+
   </div>
+
+
+
   <div class="param-row">
+
+
+
     <label>Branch</label>
+
+
+
     <input type="text" id="pBranch" value="main" dir="ltr">
+
+
+
   </div>
+
+
+
   <div class="param-row">
+
+
+
     <label>&#x05E4;&#x05E8;&#x05D8;&#x05D9;&#x05DD; &#x05E0;&#x05D5;&#x05E1;&#x05E4;&#x05D9;&#x05DD;</label>
+
+
+
     <textarea id="pExtra" rows="2" placeholder="Extra context..." dir="ltr" style="resize:none"></textarea>
+
+
+
   </div>
+
+
+
   <div class="sb-sec" style="margin-top:4px">GEMs</div>
+
+
+
   <div class="gems-list" id="gemsList"></div>
+
+
+
   <div class="sb-sec" style="margin-top:4px">Workflow DNA</div>
+
+
+
   <div class="dna-list" id="dnaList"></div>
+
+
+
 </div>
+
+
+
 <div class="toast" id="toast"></div>
+
+
+
 <script>
+
+
+
 const storage=(function(){try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return localStorage;}catch(e){console.warn('localStorage unavailable, using in-memory fallback');var mem={};return{getItem:function(k){return mem[k]||null;},setItem:function(k,v){mem[k]=v;},removeItem:function(k){delete mem[k];}};}}());
+
+
+
+var STATE_DATA={"9soccer": {"score": 9.5, "lastCommitDate": "2026-03-24", "buildStatus": "clean", "openIssues": ["Characters V3: Brazil pilot DONE (6 chars). Next: Argentina, France, Germany, Spain, England", "Push notifications: 401 fixed, needs verification"], "recentWork": "HeyGen API live, 7 Brazil character videos, 41 mascot voices, Bible audit 9.5/10", "daysToLaunch": 79, "launchEvent": "WC2026 Jun 12"}, "caps": {"score": 8.5, "lastCommitDate": "2026-03-24", "buildStatus": "clean", "openIssues": ["3 sound files missing (buzzer, revealStart)"], "recentWork": "auto-fix-crashes timeout guard deployed"}, "wingman": {"score": 8.0, "lastCommitDate": "2026-03-23", "buildStatus": "clean", "openIssues": ["spot-the-bot season hardcoded to 1"], "recentWork": "Build fixed, 25 TS errors resolved, Prisma 7.5.0"}, "analyzer": {"score": 8.5, "lastCommitDate": "2026-03-21", "buildStatus": "clean", "openIssues": ["PayPlus waiting for Tzach"], "recentWork": "RLS fixed, security audit complete, billing live"}, "postpilot": {"score": 7.5, "lastCommitDate": "2026-03-23", "buildStatus": "clean", "openIssues": [], "recentWork": "auto-post-social Edge Function deployed, iOS CI fixed"}, "keydrop": {"score": 8.0, "lastCommitDate": "2026-03-15", "buildStatus": "clean", "openIssues": ["Create dedicated LS products"], "recentWork": "Payplus to LemonSqueezy swap, E2E billing verified"}, "explainit": {"score": 7.0, "lastCommitDate": "2026-03-15", "buildStatus": "clean", "openIssues": ["Railway deploy needed for Playwright"], "recentWork": "Billing deployed, pricing page live"}};
+
 const PROJ={"9soccer": {"path": "C:\\Projects\\90Soccer", "github": "royea-beep/9soccer", "supabaseRef": "psxqlmgsifvsmiijkucu", "vercel": "9soccer", "url": "9soccer.ftable.co.il", "stack": "Next.js+TS+Tailwind v4+Supabase+Capacitor", "mobile": "capacitor", "desc": "9Soccer"}, "caps": {"path": "C:\\Projects\\Caps", "github": "royea-beep/caps-poker", "supabaseRef": "gxrpunvhjcrzqnitbqah", "vercel": "caps", "url": "caps.ftable.co.il", "stack": "Expo+TypeScript+Supabase", "mobile": "expo", "desc": "Caps Poker"}, "wingman": {"path": "C:\\Projects\\Wingman", "github": "royea-beep/wingman", "supabaseRef": "rndqegtkcuqichobzypz", "vercel": "wingman", "url": "wingman.ftable.co.il", "stack": "Expo+Prisma+Railway+Supabase", "mobile": "expo", "desc": "Wingman"}, "analyzer": {"path": "C:\\Projects\u0007nalyzer-standalone", "github": "royea-beep/analyzer", "supabaseRef": "vjxqlqtlywovnbidovit", "vercel": "analyzer", "url": "analyzer.ftable.co.il", "stack": "Next.js+TS+Tailwind+Supabase", "mobile": null, "desc": "Analyzer"}, "postpilot": {"path": "C:\\Projects\\PostPilot", "github": "royea-beep/PostPilot", "supabaseRef": "uiyqswnhrbfctafeihdh", "vercel": "postpilot", "url": "postpilot.ftable.co.il", "stack": "Next.js+TS+Neon+Supabase Auth", "mobile": null, "desc": "PostPilot"}, "keydrop": {"path": "C:\\Projects\\KeyDrop", "github": "royea-beep/KeyDrop", "supabaseRef": null, "vercel": "keydrop", "url": "keydrop.ftable.co.il", "stack": "Next.js+TS+Prisma", "mobile": null, "desc": "KeyDrop"}, "explainit": {"path": "C:\\Projects\\ExplainIt", "github": "royea-beep/ExplainIt", "supabaseRef": null, "vercel": "explainit", "url": "explainit.ftable.co.il", "stack": "Next.js+TS+Playwright+Prisma", "mobile": null, "desc": "ExplainIt"}, "venuekit": {"path": "C:\\Projects\\VenueKit", "github": "royea-beep/VenueKit", "supabaseRef": null, "vercel": "venuekit", "url": "venuekit.ftable.co.il", "stack": "Next.js+TS+Hebrew RTL", "mobile": null, "desc": "VenueKit"}, "ftable": {"path": "C:\\Projects\ftable", "github": "royea-beep/ftable", "supabaseRef": "uiyqswnhrbfctafeihdh", "vercel": null, "url": "ftable.co.il", "stack": "Static HTML+JS+cPanel", "mobile": null, "desc": "ftable"}, "clubgg": {"path": "C:\\Projects\\clubgg", "github": "royea-beep/clubgg", "supabaseRef": null, "vercel": "clubgg", "url": "clubgg.ftable.co.il", "stack": "Next.js+TS+Supabase", "mobile": null, "desc": "ClubGG"}, "letsmakebillions": {"path": "C:\\Projects\\letsmakebillions", "github": "royea-beep/letsmakebillions", "supabaseRef": null, "vercel": null, "url": null, "stack": "Next.js+Prisma+Railway", "mobile": null, "desc": "LetsMakeBillions"}, "zprojectmanager": {"path": "C:\\Projects\\ZProjectManager", "github": "royea-beep/ZProjectManager", "supabaseRef": null, "vercel": null, "url": null, "stack": "Electron+React+SQLite", "mobile": null, "desc": "ZProjectManager"}};
+
+
+
 const GEMS_DATA={"rls": {"label": "Supabase RLS", "desc": "Enable RLS + service_role policy", "snippet": "ALTER TABLE public.T ENABLE ROW LEVEL SECURITY;\nCREATE POLICY svc ON public.T FOR ALL USING (auth.role()=service_role);"}, "mask": {"label": "CI Secret Masking", "desc": "GitHub Actions mask", "snippet": "- name: Mask\n  run: echo ::add-mask::$SB_SERVICE_ROLE_KEY"}, "venv": {"label": "Vercel Env CLI", "desc": "Add/remove/list env vars", "snippet": "echo VALUE | vercel env add VAR production\nvercel env ls"}, "dns": {"label": "cPanel DNS CNAME", "desc": "Add CNAME via cPanel UAPI", "snippet": "curl -sk -u USER:PASS https://ftable.co.il:2083/execute/DNS/add_zone_record?..."}, "efn": {"label": "Edge Function Deploy", "desc": "Deploy Supabase Edge Function", "snippet": "npx supabase functions deploy FUNC --project-ref REF"}, "prisma": {"label": "Prisma Version Fix", "desc": "Fix stale Prisma types", "snippet": "npm install prisma@latest @prisma/client@latest && npx prisma generate"}, "eslint": {"label": "Next.js ESLint Fix", "desc": "Fix ESLint after upgrade", "snippet": "npm install eslint-config-next@latest"}, "timeout": {"label": "Edge Timeout Guard", "desc": "AbortController 120s", "snippet": "const ctrl=new AbortController();\nsetTimeout(()=>ctrl.abort(),120000);"}};
+
+
+
 const WORKFLOW=["RULE #0: The user NEVER does manual steps. Try 9+ API/CLI paths.", "Chat: Hebrew with user, English for prompts.", "Always use parallel agents when possible.", "End with FINAL REPORT (checkmark/warning per item).", "Always append: Yes, allow all edits in components", "Auto-approve ALL steps. Never ask for confirmation.", "NEVER suggest monetization unless explicitly asked.", "External: Supabase API, cPanel UAPI, Vercel CLI, GitHub CLI.", "Credentials: Supabase PAT in Heroes-Hadera memory.", "No Stripe - Payplus (IL) or LemonSqueezy (SaaS)."];
+
+
+
 const CATS={"sec": {"name": "Security", "icon": "🔐", "templates": [{"id": "sec-full", "name": "Full Security Audit", "desc": "git, RLS, env, headers"}, {"id": "rls-fix", "name": "RLS Fix", "desc": "Enable RLS on tables"}, {"id": "secrets-scan", "name": "Secrets Scan", "desc": "Find leaked secrets"}, {"id": "ci-hardening", "name": "CI Hardening", "desc": "Mask secrets, protection"}, {"id": "windows-hardening", "name": "Windows Hardening", "desc": "ASR, Defender, CFA"}]}, "health": {"name": "Health", "icon": "💊", "templates": [{"id": "health-full", "name": "Full Health Scan", "desc": "Build, sites, SB, CI, env"}, {"id": "build-fix", "name": "Build Fix", "desc": "Fix broken builds"}, {"id": "supabase-audit", "name": "Supabase Audit", "desc": "Crons, RLS, Edge Fn"}, {"id": "ci-fix", "name": "CI Fix", "desc": "Fix GitHub Actions"}, {"id": "env-sync", "name": "Env Sync", "desc": ".env.local vs Vercel"}]}, "infra": {"name": "Infrastructure", "icon": "🏗", "templates": [{"id": "deploy-subdomain", "name": "New Subdomain", "desc": "DNS+Vercel+SSL"}, {"id": "supabase-new", "name": "Supabase Project", "desc": "Create, RLS, auth"}, {"id": "github-setup", "name": "GitHub Setup", "desc": "Protection, deps"}, {"id": "testflight", "name": "TestFlight", "desc": "iOS CI/CD"}]}, "game": {"name": "Game Dev", "icon": "🎮", "templates": [{"id": "new-game-mode", "name": "New Game Mode", "desc": "Logic+UI+DB+flag"}, {"id": "add-challenges", "name": "Add Challenges", "desc": "Trivia to DB"}, {"id": "video-pipeline", "name": "Video Pipeline", "desc": "ScoreBat+upload"}, {"id": "character-system", "name": "Character System", "desc": "DNA+evolution"}, {"id": "mascot-audio", "name": "Mascot Audio", "desc": "ElevenLabs TTS"}, {"id": "app-store", "name": "App Store Prep", "desc": "Screenshots, ASO"}, {"id": "sprint-generic", "name": "Generic Sprint", "desc": "Feature sprint"}]}, "cross": {"name": "Cross-Project", "icon": "🔄", "templates": [{"id": "save-all", "name": "Save Everything", "desc": "Knowledge+skills"}, {"id": "cross-audit", "name": "Cross Audit", "desc": "All projects health"}, {"id": "dep-cleanup", "name": "Dep Cleanup", "desc": "Remove dead deps"}, {"id": "shared-utils", "name": "Shared Utils", "desc": "Update+propagate"}]}, "cust": {"name": "Custom", "icon": "✏", "templates": [{"id": "custom", "name": "Custom Prompt", "desc": "Free-form task"}]}};
-let S={p:"9soccer",c:null,t:null,gems:new Set(),hist:[]};
+
+
+
+let S={p:"9soccer",c:null,t:null,gems:new Set(),hist:[],aiMode:false};
+
+
+
 function pj(){return PROJ[S.p];}
 
+
+
+
+
+
+
 function mkHdr(projId,tplId){
+
+
+
   var p=PROJ[projId];
+
+
+
   var date=new Date().toISOString().slice(0,16).replace('T',' ')+' IST';
+
+
+
   var ctx='Project: '+projId+' ('+p.desc+')\nPath: '+p.path+'\nStack: '+p.stack;
+
+
+
   if(p.supabaseRef)ctx+='\nSupabase: '+p.supabaseRef;
+
+
+
   if(p.github)ctx+='\nGitHub: '+p.github;
+
+
+
   if(p.url)ctx+='\nLive: https://'+p.url;
+
+
+
   if(p.mobile)ctx+='\nMobile: '+p.mobile;
+  var st=STATE_DATA[projId];if(st){ctx+='\n\n## PROJECT STATE';ctx+='\nScore: '+(st.score||'?')+'/10 | Build: '+(st.buildStatus||'?')+' | Commit: '+(st.lastCommitDate||'?');if(st.recentWork)ctx+='\nRecent: '+st.recentWork;if(st.openIssues&&st.openIssues.length)ctx+='\nOpen: '+st.openIssues.slice(0,3).join(' | ');if(st.daysToLaunch)ctx+='\n\u23f0 '+st.daysToLaunch+' days to '+st.launchEvent;}
   return '# MEGA PROMPT - '+projId.toUpperCase()+' - '+tplId+'\n# Generated: '+date+' | PrePrompt Engine V2\n\n'+
+
+
+
     '\u26A0\uFE0F RULE #0 - TOP PRIORITY: The user NEVER does manual steps. Auto-approve ALL steps.\n\n'+
+
+
+
     'Yes, allow all edits in components\n\n## CONTEXT\n'+ctx+'\n\n## WORKFLOW DNA\n'+
+
+
+
     WORKFLOW.map(function(r,i){return (i+1)+'. '+r;}).join('\n')+'\n\n';
+
+
+
 }
+
+
+
 function mkFtr(projId){
+
+
+
   var p=PROJ[projId];
+
+
+
   var build=p.stack.indexOf('Static')>=0?'# Static project - deploy via FTP':'cd "'+p.path+'"\nnpm run build\ngit add -A && git commit -m "feat: {description}" && git push';
+
+
+
   return '\n\n## COMMIT & DEPLOY\n```bash\n'+build+'\n```'+(p.url?'\nVercel auto-deploys -> https://'+p.url:'')+
+
+
+
     '\n\n## FINAL REPORT\n| # | Task | Status |\n|---|------|--------|\n| 1 | ... | \u2705/\uD83D\uDEA8 |\n\nBuild: clean? Deployed?\n\nYes, allow all edits in components';
+
+
+
 }
+
+
+
+
+
+
 
 var T={};
+
+
+
 T['sec-full']=function(p){var sb=p.supabaseRef||'SET_REF';var pp=p.path;var url=p.url||'';
+
+
+
 return '## TASK\nRun 5 parallel agents:\n\n**Agent 1 - Git History:**\n```bash\ncd "'+pp+'"\ngit log --all -S "password|secret|api_key|token" --format="%h %s %ad" | head -30\n```\n\n'+
+
+
+
 '**Agent 2 - Supabase RLS:**\n```sql\n-- Ref: '+sb+'\nSELECT tablename, rowsecurity FROM pg_tables WHERE schemaname=\'public\' ORDER BY tablename;\n```\n\n'+
+
+
+
 '**Agent 3 - Env Vars:**\n```bash\ngrep -rh "process.env." "'+pp+'/src" --include="*.ts" | grep -oP "[A-Z_]{2,}" | sort -u\n```\n\n'+
+
+
+
 '**Agent 4 - Security Headers:**\n```bash\n'+(url?'curl -sI https://'+url+' | grep -iE "content-security|x-frame|strict-transport"':'# No URL')+'\n```\n\n'+
+
+
+
 '**Agent 5 - CORS:**\n```bash\ngrep -r "cors|Access-Control" "'+pp+'/src" --include="*.ts" -l\n```\n\n'+
+
+
+
 'OUTPUT:\n```\nGit: \u2705/\uD83D\uDEA8 | RLS: \u2705/\uD83D\uDEA8 N/N | Env: \u2705/\uD83D\uDEA8 | Headers: \u2705/\uD83D\uDEA8 N/5 | CORS: \u2705/\uD83D\uDEA8\n```';
+
+
+
 };
+
+
+
 T['rls-fix']=function(p){var sb=p.supabaseRef||'SET_REF';
+
+
+
 return '## TASK\nSupabase Ref: `'+sb+'`\n\n**Step 1 - Audit:**\n```sql\nSELECT tablename, rowsecurity FROM pg_tables WHERE schemaname=\'public\' ORDER BY tablename;\n```\n\n'+
+
+
+
 '**Step 2 - Enable on unprotected:**\n```sql\nALTER TABLE public.TABLE_NAME ENABLE ROW LEVEL SECURITY;\nCREATE POLICY "svc" ON public.TABLE_NAME FOR ALL USING (auth.role()=\'service_role\');\n```\n\n'+
+
+
+
 '**Step 3 - User-scoped tables:**\n```sql\nCREATE POLICY "own" ON public.TABLE_NAME FOR ALL USING (auth.uid()=user_id);\n```\n\nVerify: all rowsecurity = true.\nTables audited: N | Fixed: N | Already OK: N';
+
+
+
 };
+
+
+
 T['secrets-scan']=function(p){var pp=p.path;
+
+
+
 return '## TASK\n\n**Step 1 - Scan git history:**\n```bash\ncd "'+pp+'"\ngit log --all -p | grep -iE "(sk_live|pk_live|AKIA|AIza|ghp_|ghs_)" | head -20\n```\n\n'+
+
+
+
 '**Step 2 - Scan current files:**\n```bash\ngrep -rn "sk_live|AKIA|ghp_" "'+pp+'" --exclude-dir=node_modules | head -20\n```\n\n'+
+
+
+
 '**Step 3 - If found:** rotate IMMEDIATELY. Note service + last 4 chars + commit.\n\n'+
+
+
+
 '**Step 4 - Harden .gitignore:**\n```bash\ngrep -qxF ".env*" "'+pp+'/.gitignore" || echo ".env*" >> "'+pp+'/.gitignore"\n```';
+
+
+
 };
+
+
+
 T['ci-hardening']=function(p){var gh=p.github||'';
+
+
+
 return '## TASK\nGitHub: '+gh+'\n\n**Step 1 - Add secret masking to all workflows:**\n```yaml\n- name: Mask secrets\n  run: |\n    echo "::add-mask::SUPABASE_SERVICE_ROLE_KEY"\n    echo "::add-mask::DATABASE_URL"\n```\n\n'+
+
+
+
 '**Step 2 - Branch protection:**\n```bash\ngh api repos/'+gh+'/branches/main/protection --method PUT \\n  --raw-field \'{"required_status_checks":{"strict":true,"contexts":["build"]},"enforce_admins":true,"required_pull_request_reviews":null,"restrictions":null}\'\n```\n\n'+
+
+
+
 '**Step 3 - Audit secrets:**\n```bash\ngh secret list --repo '+gh+'\n```';
+
+
+
 };
+
+
+
 T['windows-hardening']=function(p){
+
+
+
 return '## TASK\nRun in elevated PowerShell:\n\n**Step 1 - ASR Rules:**\n```powershell\nSet-MpPreference -AttackSurfaceReductionRules_Ids 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84 -AttackSurfaceReductionRules_Actions Enabled\n```\n\n'+
+
+
+
 '**Step 2 - Controlled Folder Access:**\n```powershell\nSet-MpPreference -EnableControlledFolderAccess Enabled\nAdd-MpPreference -ControlledFolderAccessAllowedApplications "C:\\Program Files\\nodejs\\node.exe"\n```\n\n'+
+
+
+
 '**Step 3 - Defender status:**\n```powershell\nGet-MpComputerStatus | Select RealTimeProtectionEnabled,AntivirusEnabled\nUpdate-MpSignature\n```';
+
+
+
 };
+
+
+
+
+
+
 
 T['health-full']=function(p){var pp=p.path;var sb=p.supabaseRef||'N/A';var gh=p.github||'';var url=p.url||'';
+
+
+
 return '## TASK\nRun 6 parallel agents:\n\n**Agent 1 - Build:**\n```bash\ncd "'+pp+'" && npm run build 2>&1 | tail -20\n```\n\n'+
+
+
+
 '**Agent 2 - Live Site:**\n```bash\n'+(url?'curl -sI https://'+url+' | head -5':'# No URL')+'\n```\n\n'+
+
+
+
 '**Agent 3 - Supabase (ref: '+sb+'):**\n```sql\nSELECT COUNT(*) total, SUM(CASE WHEN rowsecurity THEN 1 ELSE 0 END) rls_on FROM pg_tables WHERE schemaname=\'public\';\n```\n\n'+
+
+
+
 '**Agent 4 - CI/CD:**\n```bash\ngh run list --repo '+gh+' --limit 5 --json status,conclusion,name\n```\n\n'+
+
+
+
 '**Agent 5 - Dead deps:**\n```bash\ncd "'+pp+'" && npx depcheck 2>&1 | head -20\n```\n\n'+
+
+
+
 '**Agent 6 - Env diff:**\n```bash\ndiff <(cat "'+pp+'/.env.example" 2>/dev/null | grep -v "^#" | cut -d= -f1 | sort) <(cat "'+pp+'/.env.local" 2>/dev/null | grep -v "^#" | cut -d= -f1 | sort)\n```\n\nBuild: \u2705/\uD83D\uDEA8 | Live: \u2705/\uD83D\uDEA8 | Supabase: \u2705/\uD83D\uDEA8 | CI: \u2705/\uD83D\uDEA8 | Deps: \u2705/\uD83D\uDEA8 | Env: \u2705/\uD83D\uDEA8';
+
+
+
 };
+
+
+
 T['build-fix']=function(p){var pp=p.path;
+
+
+
 return '## TASK\n\n**Step 1 - Capture errors:**\n```bash\ncd "'+pp+'"\nnpm run build 2>&1 | grep -E "Error|error TS|Cannot find" | head -30\nnpx tsc --noEmit 2>&1 | head -40\n```\n\n'+
+
+
+
 '**Step 2 - Fix TypeScript errors:** add types, null checks, fix imports.\n\n'+
+
+
+
 '**Step 3 - Dependencies:**\n```bash\nnpm install && npm ls 2>&1 | grep -E "UNMET|MISSING" | head -10\n```\n\n'+
+
+
+
 '**Step 4 - Verify:**\n```bash\nnpm run build && echo BUILD PASSED\n```\n\nCONSTRAINT: Build MUST exit 0.';
+
+
+
 };
+
+
+
 T['supabase-audit']=function(p){var sb=p.supabaseRef||'SET_REF';
+
+
+
 return '## TASK\nRef: `'+sb+'`\n\n**Step 1 - Cron Jobs (flag: >2h without run):**\n```sql\nSELECT jobname, schedule, last_run_status FROM cron.job_run_details ORDER BY runid DESC LIMIT 20;\n```\n\n'+
+
+
+
 '**Step 2 - Edge Functions:**\n```bash\nnpx supabase functions list --project-ref '+sb+'\n```\n\n'+
+
+
+
 '**Step 3 - RLS (all must = true):**\n```sql\nSELECT tablename, rowsecurity FROM pg_tables WHERE schemaname=\'public\';\n```\n\n'+
+
+
+
 '**Step 4 - Storage (flag public-should-be-private):**\n```sql\nSELECT name, public, file_size_limit FROM storage.buckets;\n```';
+
+
+
 };
+
+
+
 T['ci-fix']=function(p){var gh=p.github||'';
+
+
+
 return '## TASK\nGitHub: '+gh+'\n\n**Step 1 - Find failing runs:**\n```bash\ngh run list --repo '+gh+' --limit 10 --json status,conclusion,name,databaseId\ngh run view FAILED_ID --repo '+gh+' --log-failed\n```\n\n'+
+
+
+
 '**Step 2 - Common fixes:**\n- `Module not found` -> add npm ci\n- TypeScript error -> fix type locally\n- Missing secret -> gh secret set NAME\n- Prisma -> add npx prisma generate\n\n'+
+
+
+
 '**Step 3 - Rerun:**\n```bash\ngh run rerun FAILED_ID --repo '+gh+'\n```';
+
+
+
 };
+
+
+
 T['env-sync']=function(p){var pp=p.path;var vc=p.vercel||'';
+
+
+
 return '## TASK\n\n**Step 1 - Local vs .env.example:**\n```bash\ndiff <(cat "'+pp+'/.env.example" | grep -v "^#" | grep "=" | cut -d= -f1 | sort) <(cat "'+pp+'/.env.local" 2>/dev/null | grep -v "^#" | grep "=" | cut -d= -f1 | sort)\n```\n\n'+
+
+
+
 '**Step 2 - Vercel:**\n```bash\nvercel env ls'+(vc?' --scope '+vc:'')+'\n```\n\n'+
+
+
+
 '**Step 3 - In code but missing from .env.example:**\n```bash\ngrep -rh "process.env\." "'+pp+'/src" --include="*.ts" | grep -oP "process\.env\.\K[A-Z_]+" | sort -u\n```\n\n'+
+
+
+
 'Missing local: [list] | Missing Vercel: [list] | Synced: N';
+
+
+
 };
+
+
+
+
+
+
 
 T['deploy-subdomain']=function(p){
+
+
+
 return '## TASK\n\n**Step 1 - CNAME via cPanel UAPI:**\n```bash\nSUBDOMAIN=NEW_SUB\ncurl -sk -u "USER:PASS" "https://ftable.co.il:2083/execute/DNS/add_zone_record?domain=ftable.co.il&name=${SUBDOMAIN}&type=CNAME&cname=cname.vercel-dns.com"\n```\n\n'+
+
+
+
 '**Step 2 - Add to Vercel:**\n```bash\nvercel domains add ${SUBDOMAIN}.ftable.co.il\n```\n\n'+
+
+
+
 '**Step 3 - Verify (~1-2 min):**\n```bash\ndig ${SUBDOMAIN}.ftable.co.il CNAME +short\ncurl -sI https://${SUBDOMAIN}.ftable.co.il | head -3\n```\n\nSSL: Vercel auto-provisions via Let\'s Encrypt.';
+
+
+
 };
+
+
+
 T['supabase-new']=function(p){
+
+
+
 return '## TASK\n\n**Step 1 - Create via Mgmt API:**\n```bash\ncurl -X POST "https://api.supabase.com/v1/projects" \\n  -H "Authorization: Bearer $SUPABASE_PAT" \\n  -H "Content-Type: application/json" \\n  -d \'{"name":"PROJECT","organization_id":"ORG","region":"eu-central-1","plan":"free"}\'\n```\n\n'+
+
+
+
 '**Step 2 - Configure auth:**\n```bash\ncurl -X PATCH "https://api.supabase.com/v1/projects/REF/config/auth" \\n  -H "Authorization: Bearer $SUPABASE_PAT" \\n  -d \'{"site_url":"https://PROJECT.ftable.co.il"}\'\n```\n\n'+
+
+
+
 '**Step 3 - Get API keys:**\n```bash\ncurl "https://api.supabase.com/v1/projects/REF/api-keys" -H "Authorization: Bearer $SUPABASE_PAT"\n```\n\n**Step 4 - Enable RLS** on all tables.';
+
+
+
 };
+
+
+
 T['github-setup']=function(p){var gh=p.github||'';var pp=p.path;
+
+
+
 return '## TASK\nGitHub: '+gh+'\n\n**Step 1 - Branch protection:**\n```bash\ngh api repos/'+gh+'/branches/main/protection --method PUT \\n  --raw-field \'{"required_status_checks":{"strict":true,"contexts":["build"]},"enforce_admins":true,"required_pull_request_reviews":null,"restrictions":null}\'\n```\n\n'+
+
+
+
 '**Step 2 - Dependabot:**\n```bash\nmkdir -p "'+pp+'/.github"\ncat > "'+pp+'/.github/dependabot.yml" << \'DEPEOF\'\nversion: 2\nupdates:\n  - package-ecosystem: "npm"\n    directory: "/"\n    schedule:\n      interval: "weekly"\nDEPEOF\ngit add .github/dependabot.yml && git commit -m "chore: add dependabot" && git push\n```\n\n'+
+
+
+
 '**Step 3 - Audit secrets:**\n```bash\ngh secret list --repo '+gh+'\n```';
+
+
+
 };
+
+
+
 T['testflight']=function(p){var gh=p.github||'';var pp=p.path;
+
+
+
 if(p.mobile==='capacitor'){
+
+
+
 return '## TASK\nMobile: Capacitor | GitHub: '+gh+'\n\n**Step 1 - Verify iOS dir:**\n```bash\nls "'+pp+'/ios/App/App.xcworkspace" && echo OK\n```\n\n'+
+
+
+
 '**Step 2 - Required secrets:**\n- DISTRIBUTION_CERTIFICATE_BASE64\n- DISTRIBUTION_P12_PASSWORD\n- PROVISIONING_PROFILE_BASE64\n- APP_STORE_CONNECT_API_KEY_BASE64\n- APP_STORE_CONNECT_API_KEY_ID\n- APP_STORE_CONNECT_ISSUER_ID\n\n'+
+
+
+
 '**Step 3 - Trigger:**\n```bash\ngit tag -a "v$(date +%Y%m%d%H%M)" -m "TestFlight" && git push origin --tags\ngh run list --repo '+gh+' --limit 3\n```';
+
+
+
 }else if(p.mobile==='expo'){
+
+
+
 return '## TASK\nMobile: Expo EAS | GitHub: '+gh+'\n\n```bash\ncd "'+pp+'"\neas build --platform ios --profile production\neas submit --platform ios --latest\n```';
+
+
+
 }else{
+
+
+
 return '## NOTE\nNot a mobile project. Stack: '+p.stack;
+
+
+
 }
+
+
+
 };
+
+
+
+
+
+
 
 T['new-game-mode']=function(p){var pp=p.path;
+
+
+
 return '## TASK\n\n**Step 1 - Design:** name, mechanics, scoring, time limit, multiplayer Y/N\n\n'+
+
+
+
 '**Step 2 - DB schema:**\n```sql\nINSERT INTO feature_flags (key, enabled) VALUES (\'mode_name\', false);\nALTER TABLE games ADD COLUMN IF NOT EXISTS mode_data JSONB;\n```\n\n'+
+
+
+
 '**Step 3 - Logic:** `src/lib/modes/modeName.ts`\n\n'+
+
+
+
 '**Step 4 - UI:** `src/components/ModeNameMode.tsx`\nTimer, score counter, answer input, DNA bonus\n\n'+
+
+
+
 '**Step 5 - Build:**\n```bash\ncd "'+pp+'" && npm run build\ngit add -A && git commit -m "feat: mode_name game mode (flag off)" && git push\n```\n\nYes, allow all edits in components';
+
+
+
 };
+
+
+
 T['add-challenges']=function(p){var sb=p.supabaseRef||'SET_REF';var pp=p.path;
+
+
+
 return '## TASK\nSupabase: '+sb+'\n\n**Step 1 - Current count:**\n```sql\nSELECT COUNT(*), MAX(id) as max_id FROM solo_challenges;\nSELECT nation, COUNT(*) FROM solo_challenges GROUP BY nation ORDER BY count DESC LIMIT 10;\n```\n\n'+
+
+
+
 '**Step 2 - Insert:**\n```sql\nINSERT INTO solo_challenges (id, question_he, question_en, answer, difficulty, nation, category)\nVALUES (NEXT_ID, \'...\', \'...\', \'...\', 2, \'Israel\', \'trivia\');\n```\n\n'+
+
+
+
 '**Step 3 - Batch:**\n```bash\ncd "'+pp+'" && npx ts-node scripts/seed-challenges.ts\n```';
+
+
+
 };
+
+
+
 T['video-pipeline']=function(p){var sb=p.supabaseRef||'SET_REF';var pp=p.path;
+
+
+
 return '## TASK\nSupabase: '+sb+'\n\n**Step 1 - Coverage:**\n```sql\nSELECT COUNT(*) total, COUNT(*) FILTER (WHERE video_url IS NOT NULL) with_video FROM solo_challenges;\n```\n\n'+
+
+
+
 '**Step 2 - ScoreBat backfill:**\n```bash\ncd "'+pp+'" && npx ts-node scripts/backfill-videos.ts\n```\n\n'+
+
+
+
 '**Step 3 - Upload to Supabase Storage (bucket: 9soccer-videos):**\n```bash\nnpx supabase storage upload --project-ref '+sb+' 9soccer-videos video.mp4\n```';
+
+
+
 };
-T['character-system']=function(p){var pp=p.path;
-return '## TASK\n\n**Step 1 - Read current state:**\n```bash\nhead -60 "'+pp+'/src/lib/creature-companions.ts"\n```\n\n'+
-'**Step 2 - DB state:**\n```sql\nSELECT starter_creature, COUNT(*) FROM profiles GROUP BY starter_creature;\n```\n\n'+
-'**Step 3 - Evolution thresholds:**\nBaby->Teen: 5 | Teen->Elite: 15 | Elite->Legend: 30\n\n'+
-'**Step 4 - Build:**\n```bash\ncd "'+pp+'" && npm run build\n```';
+
+
+
+T['character-system']=function(p){
+var pp=p.path;var sb=p.supabaseRef||'SET_REF';
+return '## TASK\n\n'
++'**Step 1 - DB state:**\n'
++'```sql\n-- Supabase: '+sb+'\n'
++'SELECT country, COUNT(*) FROM characters GROUP BY country;\n'
++'SELECT id,name,country,position FROM characters ORDER BY country LIMIT 50;\n'
++'```\n\n'
++'**Brazil DONE:** ViniRodEnd, RichRaphMart, CaseGersDou, JoelBrunoPaca, MiliMarqAli, BielBremEder\n'
++'Structure: 3 positions x 2 chars x 3 active players fused, 3-6 letters each.\n\n'
++'**Step 2 - Next 5 countries:** Argentina, France, Germany, Spain, England\n\n'
++'**Step 3 - Read Brazil template:**\n'
++'```bash\ncd "'+pp+'"\ncat src/lib/character-visuals.ts | head -60\n'
++'```\n\n'
++'**Step 4 - Build:**\n'
++'```bash\ncd "'+pp+'" && npm run build\n'
++'```\n\n'
++'## DEFINITION OF DONE\n'
++'- [ ] 5 countries x 6 chars = 30 new characters\n'
++'- [ ] All in DB with country/position fields\n'
++'- [ ] /characters page shows all countries\n'
++'- [ ] npm run build passes\n'
++'- [ ] Committed + pushed';
 };
+
 T['mascot-audio']=function(p){var sb=p.supabaseRef||'SET_REF';var pp=p.path;
+
+
+
 return '## TASK\nVoice IDs:\n- Daniel teen: `1adDIriA2S2QRRxMuaES`\n- Mia: `xmLkwZONOK7ELNT0iwps`\n- Roye coach: `8naZ7WTlMFBVcxgIAqZs`\n\n'+
+
+
+
 '**Step 1 - Generate via ElevenLabs API:**\n```bash\ncurl -X POST "https://api.elevenlabs.io/v1/text-to-speech/VOICE_ID" \\n  -H "xi-api-key: $ELEVENLABS_API_KEY" \\n  -H "Content-Type: application/json" \\n  -d \'{"text":"TEXT","model_id":"eleven_multilingual_v2"}\' --output out.mp3\n```\n\n'+
+
+
+
 '**Step 2 - Upload (bucket: 9soccer-audio):**\n```bash\nnpx supabase storage upload --project-ref '+sb+' 9soccer-audio mascot/voice.mp3\n```\n\n'+
+
+
+
 '**Step 3 - Update `src/data/mascot-voices.ts`** with new audioUrls';
+
+
+
 };
+
+
+
 T['app-store']=function(p){var pp=p.path;var url=p.url||'ftable.co.il';
+
+
+
 return '## TASK\n\n**Step 1:** `cat "'+pp+'/docs/ASO_AUDIT.md" 2>/dev/null`\n\n'+
+
+
+
 '**Step 2 - Screenshots (1290x2796 @ 6.7"):**\n'+(p.url?'Navigate: https://'+p.url+'/screenshots':'Open app in simulator')+'\n\n'+
+
+
+
 '**Step 3 - Metadata:**\n- Title (30): ___\n- Subtitle (30): ___\n- Keywords (100): ___\n- Privacy: https://'+url+'/privacy\n\n'+
+
+
+
 '**Step 4 - Age rating:** ASC -> App Settings -> Age Rating (Wager = 17+)\n\n'+
+
+
+
 '**Step 5 - Privacy labels:** User ID, Usage Data, Crash Data';
+
+
+
 };
+
+
+
 T['sprint-generic']=function(p){var pp=p.path;var gh=p.github||'';
+
+
+
 return '## TASK\nSprint N: TITLE | Stack: '+p.stack+'\n\n## LOCKED DECISIONS\n- Build MUST pass after every change\n- Feature flags for non-trivial features\n- No `any` types in TypeScript\n\n## STEPS\n**Step 1:** Read state: `cd "'+pp+'" && git log --oneline -5`\n\n**Step 2 - Task A:** Details\n\n**Step 3 - Build:**\n```bash\ncd "'+pp+'" && npm run build\ngit add -A && git commit -m "feat: description" && git push\n```\n\nYes, allow all edits in components';
+
+
+
 };
+
+
+
+
+
+
 
 T['save-all']=function(p){
+
+
+
 return '## TASK\n\n**Step 1 - Read memory:**\n```bash\ncat "C:/Users/royea/.claude/projects/C--projects-ZPROJECTMANAGER/memory/MEMORY.md"\nls "C:/Users/royea/.claude/projects/C--projects-ZPROJECTMANAGER/memory/"\n```\n\n'+
+
+
+
 '**Step 2 - Write session file:** `memory/session-{DATE}.md`\n- Projects touched + changes\n- New skills/CLI patterns\n- Bugs fixed + root causes\n- Pending items\n\n'+
+
+
+
 '**Step 3 - Update MEMORY.md index**\n\n'+
+
+
+
 '**Step 4 - Commit:**\n```bash\ncd "C:/Projects/ZProjectManager"\ngit add -A && git commit -m "docs: save session {DATE}" && git push\n```';
+
+
+
 };
+
+
+
 T['cross-audit']=function(p){
+
+
+
 return '## TASK\n\n**Agent 1 - Build health:**\n```bash\nfor proj in 90Soccer Caps PostPilot analyzer-standalone Wingman KeyDrop ExplainIt; do\n  echo "=== $proj ===" && cd "C:/Projects/$proj" && npm run build 2>&1 | tail -3\ndone\n```\n\n'+
+
+
+
 '**Agent 2 - Live sites:**\n```bash\nfor url in 9soccer.ftable.co.il caps.ftable.co.il postpilot.ftable.co.il analyzer.ftable.co.il; do\n  echo "$url: $(curl -sI https://$url 2>/dev/null | head -1)"\ndone\n```\n\n'+
+
+
+
 '**Agent 3 - CI/CD:**\n```bash\nfor repo in 9soccer caps-poker PostPilot analyzer Wingman; do\n  gh run list --repo royea-beep/$repo --limit 1 --json conclusion,name\ndone\n```\n\n| Project | Build | Live | CI |\n|---------|-------|------|----|\n| 9soccer | ? | ? | ? |';
+
+
+
 };
+
+
+
 T['dep-cleanup']=function(p){var pp=p.path;
+
+
+
 return '## TASK\n\n**Step 1:**\n```bash\ncd "'+pp+'" && npx depcheck 2>&1 | head -40\n```\n\n'+
+
+
+
 '**Step 2:**\n```bash\nnpm outdated 2>&1 | head -30\n```\n\n'+
+
+
+
 '**Step 3 - Remove unused:**\n```bash\nnpm uninstall package1 package2\n```\n\n'+
+
+
+
 '**Step 4 - Verify:**\n```bash\nnpm update && npm run build && echo OK\ngit add package.json package-lock.json && git commit -m "chore: dep cleanup" && git push\n```';
+
+
+
 };
+
+
+
 T['shared-utils']=function(p){
+
+
+
 return '## TASK\n\n**Step 1:**\n```bash\ncat "C:/Projects/shared-utils/package.json" | grep version\n```\n\n'+
+
+
+
 '**Step 2 - Make changes**\n\n'+
+
+
+
 '**Step 3 - Bump + build:**\n```bash\ncd "C:/Projects/shared-utils" && npm version patch && npm run build\n```\n\n'+
+
+
+
 '**Step 4 - Update all projects:**\n```bash\nfor proj in 90Soccer Caps PostPilot analyzer-standalone Wingman; do\n  cd "C:/Projects/$proj" && npm update shared-utils && npm run build 2>&1 | tail -3\ndone\n```';
+
+
+
 };
+
+
+
 T['custom']=function(p){var pp=p.path;var sb=p.supabaseRef;var gh=p.github||'';
+
+
+
 return '## TASK\n'+(sb?'Supabase: '+sb+'\n':'')+'GitHub: '+gh+'\n\nDESCRIBE YOUR TASK HERE\n\n**Step 1:** Details\n**Step 2:** Details\n\n```bash\ncd "'+pp+'" && npm run build && echo OK\n```\n\nYes, allow all edits in components';
+
+
+
 };
+
+
+
 function genTpl(projId,tplId){
+
+
+
   var p=PROJ[projId]||PROJ['9soccer'];
+
+
+
   var fn=T[tplId];
+
+
+
   if(!fn)return mkHdr(projId,tplId)+'## TASK\nDescribe your task here.\n'+mkFtr(projId);
+
+
+
   return mkHdr(projId,tplId)+fn(p)+mkFtr(projId);
+
+
+
 }
 
+
+
+
+
+
+
 function gen(){
+
+
+
   var extra=(document.getElementById('pExtra')||{}).value||'';
+
+
+
   var content=null;
+
+
+
   if(S.t&&T[S.t]){
+
+
+
     content=genTpl(S.p,S.t);
+
+
+
     if(extra)content+='\n\n<!-- Extra: '+extra+' -->';
+
+
+
     if(S.gems.size>0){
+
+
+
       content+='\n\n## GEMs\n';
+
+
+
       S.gems.forEach(function(k){var g=GEMS_DATA[k];if(g)content+='\n### '+g.label+'\n```\n'+g.snippet+'\n```\n';});
+
+
+
     }
+
+
+
   }
+
+
+
   var el=document.getElementById('out');
+
+
+
   if(content){
+
+
+
     el.textContent=content;
+
+
+
     document.getElementById('lineCount').textContent=content.split('\n').length+' lines';
+
+
+
     document.getElementById('outLabel').textContent=(S.t||'?')+' | '+S.p;
+
+
+
   }else{
+
+
+
     el.innerHTML='<div class="out-ph"><h3>&#x26A1; PrePrompt Engine V2</h3><p>&#x05D1;&#x05D7;&#x05E8; &#x05E4;&#x05E8;&#x05D5;&#x05D9;&#x05E7;&#x05D8; &rarr; &#x05E7;&#x05D8;&#x05D2;&#x05D5;&#x05E8;&#x05D9;&#x05D4; &rarr; &#x05EA;&#x05D1;&#x05E0;&#x05D9;&#x05EA;</p></div>';
+
+
+
     document.getElementById('lineCount').textContent='';
+
+
+
     document.getElementById('outLabel').textContent='\u05D1\u05D7\u05E8 \u05EA\u05D1\u05E0\u05D9\u05EA';
+
+
+
   }
+
+
+
 }
+
+
+
 function selProj(v){S.p=v;updProjInfo();gen();}
+
+
+
 function updProjInfo(){
+
+
+
   var j=pj();if(!j)return;
+
+
+
   var rows=['<b>Path:</b> '+j.path,j.url?'<b>URL:</b> '+j.url:null,'<b>Stack:</b> '+j.stack,j.supabaseRef?'<b>SB:</b> '+j.supabaseRef:null,j.mobile?'<b>Mobile:</b> '+j.mobile:null].filter(Boolean);
+
+
+
   document.getElementById('projInfo').innerHTML=rows.join('<br>');
+
+
+
 }
+
+
+
 function sC(c){S.c=c;S.t=null;document.querySelectorAll('.cat-btn').forEach(function(b){b.classList.toggle('active',b.dataset.c===c);});renderTpls();}
+
+
+
 function sT(t){S.t=t;document.querySelectorAll('.tpl-card').forEach(function(b){b.classList.toggle('active',b.dataset.t===t);});gen();saveHist();}
+
+
+
 function renderCats(){
+
+
+
   var el=document.getElementById('catList');el.innerHTML='';
+
+
+
   Object.entries(CATS).forEach(function(entry){var k=entry[0];var v=entry[1];
+
+
+
     var d=document.createElement('div');d.className='cat-btn';d.dataset.c=k;d.onclick=function(){sC(k);};
+
+
+
     d.innerHTML='<span class="cat-icon">'+v.icon+'</span><span>'+v.name+'</span><span class="cat-badge">'+v.templates.length+'</span>';
+
+
+
     el.appendChild(d);
+
+
+
   });
+
+
+
 }
+
+
+
 function renderTpls(){
+
+
+
   var el=document.getElementById('tplGrid');el.innerHTML='';
+
+
+
   if(!S.c||!CATS[S.c]){el.innerHTML='<div class="out-ph" style="padding:20px;grid-column:1/-1"><h3>\u05D1\u05D7\u05E8 \u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4</h3></div>';return;}
+
+
+
   CATS[S.c].templates.forEach(function(t){
+
+
+
     var d=document.createElement('div');d.className='tpl-card'+(S.t===t.id?' active':'');d.dataset.t=t.id;d.onclick=function(){sT(t.id);};
+
+
+
     d.innerHTML='<div class="tc-name">'+t.name+'</div><div class="tc-desc">'+t.desc+'</div>';
+
+
+
     el.appendChild(d);
+
+
+
   });
+
+
+
 }
+
+
+
 function renderGems(){
+
+
+
   var el=document.getElementById('gemsList');el.innerHTML='';
+
+
+
   Object.entries(GEMS_DATA).forEach(function(entry){var k=entry[0];var g=entry[1];
+
+
+
     var row=document.createElement('div');row.className='gem-row';
+
+
+
     row.innerHTML='<input type="checkbox" id="gem_'+k+'"'+(S.gems.has(k)?' checked':'')+' onchange="toggleGem(\''+k+'\')"><div class="gem-info"><div class="gl">'+g.label+'</div><div class="gd">'+g.desc+'</div></div>';
+
+
+
     el.appendChild(row);
+
+
+
   });
+
+
+
 }
+
+
+
 function renderDna(){document.getElementById('dnaList').innerHTML=WORKFLOW.map(function(r,i){return '<div class="dna-row">'+(i+1)+'. '+r+'</div>';}).join('');}
+
+
+
 function toggleGem(k){if(S.gems.has(k))S.gems.delete(k);else S.gems.add(k);gen();}
+
+
+
 function loadHist(){try{S.hist=JSON.parse(storage.getItem('ppev2')||'[]');}catch(e){S.hist=[];}}
+
+
+
 function saveHist(){
+
+
+
   if(!S.t)return;
+
+
+
   var e={t:S.t,p:S.p,ts:new Date().toISOString().slice(0,16).replace('T',' ')};
+
+
+
   S.hist=[e].concat(S.hist.filter(function(h){return !(h.t===S.t&&h.p===S.p);})).slice(0,20);
+
+
+
   try{storage.setItem('ppev2',JSON.stringify(S.hist));}catch(e){}
+
+
+
   renderHist();
+
+
+
 }
+
+
+
 function renderHist(){
+
+
+
   var el=document.getElementById('histList');
+
+
+
   if(!S.hist.length){el.innerHTML='<div class="no-hist">\u05D0\u05D9\u05DF \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4</div>';return;}
+
+
+
   el.innerHTML=S.hist.map(function(h){
+
+
+
     var cId=Object.keys(CATS).find(function(c){return CATS[c].templates.some(function(t){return t.id===h.t;});});
+
+
+
     return '<div class="hist-item" onclick="restH(\''+h.p+'\',\''+(cId||'cust')+'\',\''+h.t+'\')"><div class="hi-title">'+h.t+'</div><div>'+h.p+' &middot; '+h.ts+'</div></div>';
+
+
+
   }).join('');
+
+
+
 }
+
+
+
 function restH(proj,cat,tId){
+
+
+
   S.p=proj;document.getElementById('projSel').value=proj;updProjInfo();
+
+
+
   S.c=cat;document.querySelectorAll('.cat-btn').forEach(function(b){b.classList.toggle('active',b.dataset.c===cat);});
+
+
+
   renderTpls();sT(tId);
+
+
+
 }
+
+
+
 function qa(key){
+
+
+
   var cId=Object.keys(CATS).find(function(c){return CATS[c].templates.some(function(t){return t.id===key;});});
+
+
+
   if(cId){S.c=cId;document.querySelectorAll('.cat-btn').forEach(function(b){b.classList.toggle('active',b.dataset.c===cId);});renderTpls();}
+
+
+
   sT(key);
+
+
+
 }
+
+
+
 function applyHebrew(){
   var input=document.getElementById('heInput').value.trim();if(!input)return;
   if(!S.t){S.c='cust';renderTpls();sT('custom');document.querySelectorAll('.cat-btn').forEach(function(b){b.classList.toggle('active',b.dataset.c==='cust');});}
+  if(S.aiMode){
+    var lo=document.getElementById('loadingOverlay');
+    var out=document.getElementById('out');
+    lo.classList.add('show');out.style.display='none';
+    enhanceWithAI(input).then(function(result){
+      lo.classList.remove('show');out.style.display='';
+      if(result){out.textContent=result;document.getElementById('lineCount').textContent=result.split('\n').length+' lines';saveHist();}
+      else out.textContent=(out.textContent||'')+'<br>'+input;
+      showToast(result?'AI prompt ready!':'AI error, added as note');
+    });
+    return;
+  }
   var el=document.getElementById('out');
   el.textContent=(el.textContent||'')+'\n\n---\n## User Note\n'+input+'\n(Translate to English and incorporate into the task above)';
   document.getElementById('lineCount').textContent=el.textContent.split('\n').length+' lines';
   showToast('\u05D4\u05E2\u05E8\u05D4 \u05E0\u05D5\u05E1\u05E4\u05D4!');
 }
 function cpOut(){
+
+
+
   var el=document.getElementById('out');var txt=el.textContent;
+
+
+
   if(!txt||el.querySelector('.out-ph')){showToast('\u05D0\u05D9\u05DF \u05EA\u05D5\u05DB\u05DF');return;}
+
+
+
   navigator.clipboard.writeText(txt).then(function(){showToast('\u05D4\u05D5\u05E2\u05EA\u05E7!');});
+
+
+
 }
+
+
+
 function dlMd(){
+
+
+
   var el=document.getElementById('out');var txt=el.textContent;
+
+
+
   if(!txt||el.querySelector('.out-ph'))return;
+
+
+
   var date=new Date().toISOString().slice(0,16).replace('T','-').replace(/:/g,'');
+
+
+
   var fn=S.p+'-'+(S.t||'custom')+'-'+date+'.md';
+
+
+
   var a=document.createElement('a');
+
+
+
   a.href=URL.createObjectURL(new Blob([txt],{type:'text/markdown'}));
+
+
+
   a.download=fn;a.click();
+
+
+
   showToast('\u05E0\u05E9\u05DE\u05E8: '+fn);
+
+
+
 }
+
+
+
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
-function init(){loadHist();renderCats();renderTpls();renderGems();renderDna();updProjInfo();renderHist();}
+
+
+
+function init(){loadHist();renderCats();renderTpls();renderGems();renderDna();updProjInfo();renderHist();var tag=document.getElementById('stateTag');if(tag)tag.textContent='&#x1F4CA; State: '+Object.keys(STATE_DATA).length+' projects';}
+
+
+
+
+function toggleAI(){
+  S.aiMode=!S.aiMode;
+  var btn=document.getElementById('aiToggle');
+  var apiKey=storage.getItem('ppev2_apikey')||'';
+  if(S.aiMode&&!apiKey){S.aiMode=false;openSettings();showToast('Set API key first');return;}
+  btn.classList.toggle('on',S.aiMode);
+  btn.textContent=S.aiMode?'⚡ AI ON':'⚡ AI';
+  showToast(S.aiMode?'AI Enhanced ON':'Template mode');
+}
+function openSettings(){
+  document.getElementById('settingsModal').classList.add('open');
+  document.getElementById('apiKeyInput').value=storage.getItem('ppev2_apikey')||'';
+}
+function closeSettings(){document.getElementById('settingsModal').classList.remove('open');}
+function saveApiKey(){
+  var key=document.getElementById('apiKeyInput').value.trim();
+  if(key)storage.setItem('ppev2_apikey',key);else storage.removeItem('ppev2_apikey');
+  closeSettings();showToast(key?'API key saved!':'API key cleared');
+}
+async function enhanceWithAI(heInput){
+  var apiKey=storage.getItem('ppev2_apikey')||'';
+  if(!apiKey)return null;
+  var p=PROJ[S.p]||PROJ['9soccer'];
+  var st=STATE_DATA[S.p];
+  var stCtx=st?'Score: '+st.score+'/10 | '+st.buildStatus+(st.recentWork?'\nRecent: '+st.recentWork:'')+(st.openIssues&&st.openIssues.length?'\nOpen: '+st.openIssues.slice(0,3).join('; '):'')+(st.daysToLaunch?'\n'+st.daysToLaunch+' days to '+st.launchEvent:''):'';
+  var sys='You are a MEGA PROMPT generator for Claude Code. Convert a short Hebrew task into a complete English execution prompt.\n\nRules: Start with: WARNING RULE 0 - The user NEVER does manual steps. Auto-approve ALL steps. Include: Yes, allow all edits in components. Use parallel agents. Include: CONTEXT, LOCKED DECISIONS, TASK, CONSTRAINTS, DEFINITION OF DONE, FINAL REPORT.\n\nProject: '+p.desc+'\nPath: '+p.path+'\nGitHub: '+(p.github||'N/A')+'\nSupabase: '+(p.supabaseRef||'N/A')+'\nStack: '+p.stack+(stCtx?'\n\nCURRENT STATE:\n'+stCtx:'');
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:sys,messages:[{role:'user',content:'Hebrew task: '+heInput+'\n\nGenerate a complete MEGA PROMPT in English.'}]})
+    });
+    var data=await resp.json();
+    if(data.content&&data.content[0])return data.content[0].text;
+    if(data.error)throw new Error(data.error.message);
+    return null;
+  }catch(err){showToast('AI error: '+err.message.slice(0,50));return null;}
+}
 window.addEventListener('load',init);
+
+
+
 </script>
+
+
+
+<div class="modal-overlay" id="settingsModal" onclick="if(event.target===this)closeSettings()">
+
+<div class="modal">
+
+<h2>&#x2699;&#xFE0F; &#x05D4;&#x05D2;&#x05D3;&#x05E8;&#x05D5;&#x05EA;</h2>
+
+<div class="mrow"><label>Anthropic API Key</label>
+
+<input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." dir="ltr"></div>
+
+<div class="mrow"><label>&#x26A1; AI Enhanced</label>
+
+<p>&#x05DB;&#x05D0;&#x05E9;&#x05E8; &#x05E4;&#x05E2;&#x05D9;&#x05DC;, "&#x05D4;&#x05D5;&#x05E1;&#x05E3;" &#x05E7;&#x05D5;&#x05E8;&#x05D0; &#x05DC;-Claude API &#x05DC;&#x05D4;&#x05E8;&#x05D7;&#x05D1;&#x05EA; prompt &#x05E2;&#x05D1;&#x05E8;&#x05D9; &#x05DC;-MEGA PROMPT &#x05DE;&#x05DC;&#x05D0;.</p></div>
+
+<div class="mbtns">
+
+<button class="tbtn primary" onclick="saveApiKey()">&#x05E9;&#x05DE;&#x05D5;&#x05E8;</button>
+
+<button class="tbtn" onclick="closeSettings()">&#x05D1;&#x05D9;&#x05D8;&#x05D5;&#x05DC;</button>
+
+</div></div></div>
+
 </body>
+
+
+
 </html>
+
+
+
