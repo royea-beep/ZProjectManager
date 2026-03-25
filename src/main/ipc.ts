@@ -26,6 +26,7 @@ import { extractRequests, generateConfirmationMessage } from './request-extracto
 import { runExpertPanel, formatPanelForPrompt } from './expert-panel-engine';
 import type { ExpertPanelResult } from './expert-panel-engine';
 import { analyzeAllProjectsAsync, analyzeProjectAsync, generateSharedUtilsRecs } from './learning-engine';
+import { importAllSessions, importFromGitHistory, gradeAllUngraded, extractInitialPatterns, getImportStats, discoverSessions } from './session-importer';
 import { saveFinalReport, getLatestReport, getProjectReports, searchReports, getReportsByCategory, getAllReports, rebuildIndex, parseAndSaveRawReport, getReportStats } from './shared-memory';
 import { gradePrompt, getTopPrompts, getCategoryAverages, getWeakPrompts, getGradesSummary } from './prompt-grading';
 import { extractPatterns, suggestPatterns, injectPatterns, getCrossProjectInsights, markPatternAsProven, getAllPatterns, getPatternCountForProject } from './cross-project-intel';

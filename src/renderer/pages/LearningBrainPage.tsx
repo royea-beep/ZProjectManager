@@ -54,6 +54,8 @@ export default function LearningBrainPage() {
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [expandedPattern, setExpandedPattern] = useState<string | null>(null);
   const [importText, setImportText] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ total: number; imported: number; skipped: number; errors: { file: string; error: string }[]; avgGrade: number; patternsExtracted: number } | null>(null);
   const [importMsg, setImportMsg] = useState('');
   const [loading, setLoading] = useState(true);
   const [filterProject, setFilterProject] = useState('');
@@ -98,6 +100,30 @@ export default function LearningBrainPage() {
       setImportMsg('שגיאה: ' + result.error);
     }
     setTimeout(() => setImportMsg(''), 4000);
+  };
+
+  const handleImportAll = async () => {
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const result = await window.api.invoke('memory:import-all-sessions') as { total: number; imported: number; skipped: number; errors: { file: string; error: string }[]; avgGrade: number; patternsExtracted: number };
+      setImportResult(result);
+      load();
+    } catch (e) {
+      setImportResult({ total: 0, imported: 0, skipped: 0, errors: [{ file: '', error: String(e) }], avgGrade: 0, patternsExtracted: 0 });
+    }
+    setImporting(false);
+  };
+
+  const handleImportGit = async () => {
+    setImporting(true);
+    try {
+      const result = await window.api.invoke('memory:import-git') as { imported: number; total: number };
+      setImportMsg('Git: ' + result.imported + ' דוחות יובאו');
+      load();
+    } catch (e) { setImportMsg('שגיאה: ' + String(e)); }
+    setTimeout(() => setImportMsg(''), 5000);
+    setImporting(false);
   };
 
   const displayReports = searchResults !== null ? searchResults : (filterProject ? reports.filter(r => r.project === filterProject) : reports);
@@ -160,8 +186,54 @@ export default function LearningBrainPage() {
             </select>
           </div>
 
+          {/* Bulk Import Panel */}
+          <div className="bg-dark-surface border border-dark-border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">📥 ייבוא סשנים</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleImportAll}
+                  disabled={importing}
+                  className="px-4 py-2 bg-accent-blue/20 border border-accent-blue/40 rounded text-sm text-accent-blue hover:bg-accent-blue/30 disabled:opacity-50"
+                >
+                  {importing ? '⏳ מייבא...' : '🔄 ייבא כל הסשנים'}
+                </button>
+                <button
+                  onClick={handleImportGit}
+                  disabled={importing}
+                  className="px-3 py-2 bg-dark-hover border border-dark-border rounded text-sm text-dark-muted hover:text-dark-text disabled:opacity-50"
+                >
+                  🗂 ייבא מ-Git
+                </button>
+              </div>
+            </div>
+
+            {importMsg && <div className="text-sm text-accent-green">{importMsg}</div>}
+
+            {importResult && (
+              <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                <div className="bg-dark-bg rounded p-2"><div className="font-bold text-accent-blue">{importResult.total}</div><div className="text-xs text-dark-muted">נמצאו</div></div>
+                <div className="bg-dark-bg rounded p-2"><div className="font-bold text-accent-green">{importResult.imported}</div><div className="text-xs text-dark-muted">יובאו</div></div>
+                <div className="bg-dark-bg rounded p-2"><div className="font-bold text-dark-muted">{importResult.skipped}</div><div className="text-xs text-dark-muted">כפילויות</div></div>
+                <div className="bg-dark-bg rounded p-2"><div className="font-bold text-yellow-400">{importResult.avgGrade}/10</div><div className="text-xs text-dark-muted">ממוצע</div></div>
+                <div className="bg-dark-bg rounded p-2"><div className="font-bold text-purple-400">{importResult.patternsExtracted}</div><div className="text-xs text-dark-muted">תבניות</div></div>
+              </div>
+            )}
+
+            {importResult && importResult.errors.length > 0 && (
+              <details className="mt-1">
+                <summary className="text-xs text-red-400 cursor-pointer">{importResult.errors.length} שגיאות</summary>
+                <div className="mt-1 space-y-1">
+                  {importResult.errors.slice(0, 5).map((e, i) => (
+                    <div key={i} className="text-xs text-red-400 font-mono">{e.file}: {e.error}</div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+
           <details className="bg-dark-surface border border-dark-border rounded-lg">
-            <summary className="p-3 cursor-pointer text-sm text-dark-muted hover:text-dark-text">📥 ייבוא דוח חדש</summary>
+            <summary className="p-3 cursor-pointer text-sm text-dark-muted hover:text-dark-text">📋 ייבוא דוח יחיד (JSON)</summary>
             <div className="p-3 border-t border-dark-border space-y-2">
               <textarea
                 value={importText}
@@ -172,7 +244,6 @@ export default function LearningBrainPage() {
               />
               <div className="flex items-center gap-2">
                 <button onClick={handleImport} className="px-4 py-2 bg-accent-green/20 border border-accent-green/40 rounded text-sm text-accent-green hover:bg-accent-green/30">שמור</button>
-                {importMsg && <span className="text-sm">{importMsg}</span>}
               </div>
             </div>
           </details>
