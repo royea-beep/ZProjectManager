@@ -98,6 +98,8 @@ const ALLOWED_CHANNELS = new Set([
   'prompts:run-expert-panel', 'prompts:get-expert-panels', 'prompts:get-expert-panel',
   // Learning Engine
   'learning:analyze-all', 'learning:analyze-project', 'learning:get-shared-utils-recs',
+  // CAPS Pipeline Monitor
+  'caps:get-pipeline-monitor',
 ]);
 
 contextBridge.exposeInMainWorld('api', {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../components/Toast';
+import CAPSPipelineMonitor from '../components/CAPSPipelineMonitor';
 
 interface PipelineStats {
   total: number;
@@ -36,7 +37,7 @@ export default function PipelinePage() {
   const [insights, setInsights] = useState<QualityInsights | null>(null);
   const [megaContent, setMegaContent] = useState<MegaContent | null>(null);
   const [running, setRunning] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'insights' | 'conversation' | 'heatmap'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'insights' | 'conversation' | 'heatmap' | 'caps'>('overview');
   const [classifyInput, setClassifyInput] = useState('');
   const [classifyResult, setClassifyResult] = useState<any>(null);
 
@@ -106,7 +107,7 @@ export default function PipelinePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-dark-border pb-3">
-        {(['overview', 'content', 'insights', 'heatmap', 'conversation'] as const).map(tab => (
+        {(['overview', 'content', 'insights', 'heatmap', 'conversation', 'caps'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -116,7 +117,12 @@ export default function PipelinePage() {
                 : 'text-dark-muted hover:text-dark-text'
             }`}
           >
-            {tab === 'overview' ? '📊 Overview' : tab === 'content' ? '📄 mega_prompts' : tab === 'insights' ? '💡 Insights' : tab === 'heatmap' ? '🔥 Heatmap' : '📋 Conversation'}
+            {tab === 'overview' ? '📊 Overview'
+              : tab === 'content' ? '📄 mega_prompts'
+              : tab === 'insights' ? '💡 Insights'
+              : tab === 'heatmap' ? '🔥 Heatmap'
+              : tab === 'caps' ? '🃏 CAPS Monitor'
+              : '📋 Conversation'}
           </button>
         ))}
       </div>
@@ -332,6 +338,11 @@ export default function PipelinePage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* CAPS Monitor tab */}
+      {activeTab === 'caps' && (
+        <CAPSPipelineMonitor />
       )}
 
       {/* Insights tab */}

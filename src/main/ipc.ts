@@ -2151,6 +2151,31 @@ Best performing prompts for ${args.phase} phase always include:
     } catch { return args.prompt; }
   });
 
+  // ── CAPS Pipeline Monitor ────────────────────────────────────────────────
+  ipcMain.handle('caps:get-pipeline-monitor', async () => {
+    const anthropicKey = getSetting('anthropic_api_key') || '';
+    if (!anthropicKey) return { error: 'No API key configured' };
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'mcp-client-2025-04-04'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        system: 'You are a data fetcher. Call the execute_sql tool to run this exact query on project gxrpunvhjcrzqnitbqah: SELECT get_pipeline_monitor(); Return ONLY the raw JSON result, no explanation.',
+        messages: [{ role: 'user', content: 'Run get_pipeline_monitor() on the CAPS Supabase project' }],
+        mcp_servers: [{ type: 'url', url: 'https://mcp.supabase.com/mcp', name: 'supabase' }]
+      })
+    });
+    const result = await response.json();
+    return result;
+  });
+
   // ── Auto-generate IPC_REFERENCE.md on startup ─────────────────────────────
   setTimeout(() => {
     try {
